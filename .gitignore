@@ -1,0 +1,5 @@
+# ignore .idea folder
+.idea/
+
+# ignore virtual enviroment folder
+venv/
