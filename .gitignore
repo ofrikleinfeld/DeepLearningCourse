@@ -6,3 +6,9 @@ venv/
 
 # ignore data folder
 data/
+
+# ignore pychach
+*/__pycache__
+
+# ignore pdf
+*.pdf

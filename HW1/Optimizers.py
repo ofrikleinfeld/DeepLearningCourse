@@ -19,8 +19,8 @@ class SGDOptimizer(object):
                 biases = [b - self.weights_decay_rate * b for b in biases]
 
         # perform SGD step with average batch gradient
-        new_weights = [w - self.lr * np.sum(dw) / batch_size for w, dw in zip(weights, dw)]
-        new_biases = [b - self.lr * np.sum(db) / batch_size for b, db in zip(biases, db)]
+        new_weights = [w - self.lr * np.sum(dw, axis=0) / batch_size for w, dw in zip(weights, dw)]
+        new_biases = [b - self.lr * np.sum(db, axis=0) / batch_size for b, db in zip(biases, db)]
 
         return new_weights, new_biases
 
