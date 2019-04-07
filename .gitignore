@@ -3,3 +3,6 @@
 
 # ignore virtual enviroment folder
 venv/
+
+# ignore data folder
+data/

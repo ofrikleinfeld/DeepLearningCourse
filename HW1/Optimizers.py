@@ -2,13 +2,12 @@ import numpy as np
 
 
 class SGDOptimizer(object):
-    def __init__(self, lr, batch_size, weights_decay=None, weights_decay_rate=None):
+    def __init__(self, lr, weights_decay=None, weights_decay_rate=None):
         self.lr = lr
-        self.batch_size = batch_size
         self.weights_decay = weights_decay
         self.weights_decay_rate = weights_decay_rate
 
-    def make_step(self, weights, biases, dw, db):
+    def make_step(self, weights, biases, dw, db, batch_size):
         # perform weights decay
         if self.weights_decay is not None:
             if self.weights_decay == 'L1':
@@ -20,8 +19,8 @@ class SGDOptimizer(object):
                 biases = [b - self.weights_decay_rate * b for b in biases]
 
         # perform SGD step with average batch gradient
-        new_weights = [w - self.lr * np.sum(dw) / self.batch_size for w, dw in zip(weights, dw)]
-        new_biases = [b - self.lr * np.sum(db) / self.batch_size for b, db in zip(biases, db)]
+        new_weights = [w - self.lr * np.sum(dw) / batch_size for w, dw in zip(weights, dw)]
+        new_biases = [b - self.lr * np.sum(db) / batch_size for b, db in zip(biases, db)]
 
         return new_weights, new_biases
 

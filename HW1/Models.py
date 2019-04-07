@@ -3,7 +3,7 @@ import numpy as np
 from util_functions import relu, relu_derivative, softmax
 
 
-class Network(object):
+class FeedForwardNet(object):
     def __init__(self, sizes):
         self.num_layers = len(sizes)
         self.sizes = sizes
@@ -14,10 +14,8 @@ class Network(object):
         self.dw = [None] * (self.num_layers - 1)
         self.db = [None] * (self.num_layers - 1)
 
-    def set_weights(self, new_weights):
+    def set_parameters(self, new_weights, new_biases):
         self.weights = new_weights
-
-    def set_biases(self, new_biases):
         self.biases = new_biases
 
     def zero_gradients(self):
@@ -48,6 +46,10 @@ class Network(object):
         return self.dw, self.db
 
     def predict_batch(self, x_batch):
-        # self.zero_gradients()
-        # return np.argmax(softmax(self.forward_pass(x_batch)), axis=1)
-        pass
+        a = x_batch
+        for l in range(self.num_layers - 1):
+            z = np.dot(self.weights[l], a) + self.biases[l]
+            a = relu(z)
+
+        output = np.dot(self.weights[-1], a) + self.biases[-1]
+        return np.argmax(softmax(output), axis=1)
