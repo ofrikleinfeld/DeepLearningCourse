@@ -48,5 +48,6 @@ class Network(object):
         return self.dw, self.db
 
     def predict_batch(self, x_batch):
-        self.zero_gradients()
-        return np.argmax(softmax(self.forward_pass(x_batch)), axis=1)
+        # self.zero_gradients()
+        # return np.argmax(softmax(self.forward_pass(x_batch)), axis=1)
+        pass
