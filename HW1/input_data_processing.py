@@ -23,11 +23,11 @@ def load():
     f = gzip.open('./data/mnist.pkl.gz', 'rb')
     train_from_file, validation_from_file, test_from_file = pickle.load(f, encoding='iso-8859-1')
     f.close()
-    training_inputs = np.array([np.reshape(x, 784) for x in train_from_file[0]])
+    training_inputs = np.array([np.reshape(x, (784, 1)) for x in train_from_file[0]])
     training_labels = np.array([vectorized_result(y) for y in train_from_file[1]])
-    validation_inputs = np.array([np.reshape(x, 784) for x in validation_from_file[0]])
+    validation_inputs = np.array([np.reshape(x, (784, 1)) for x in validation_from_file[0]])
     validation_labels = np.array([vectorized_result(y) for y in validation_from_file[1]])
-    test_inputs = np.array([np.reshape(x, 784) for x in test_from_file[0]])
+    test_inputs = np.array([np.reshape(x, (784, 1)) for x in test_from_file[0]])
     test_labels = np.array([vectorized_result(y) for y in test_from_file[1]])
     return training_inputs, training_labels, validation_inputs, validation_labels, test_inputs, test_labels
 
@@ -37,6 +37,6 @@ def vectorized_result(j):
     position and zeroes elsewhere.  This is used to convert a digit
     (0...9) into a corresponding desired output from the neural
     network."""
-    e = np.zeros(10)
+    e = np.zeros((10, 1))
     e[j] = 1.0
     return e

@@ -10,9 +10,9 @@ random.seed(123)
 
 train_data, train_labels, validation_data, validation_labels, test_data, test_labels = load()
 net = FeedForwardNet([784, 50, 20, 10])
-optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.0001)
+optimizer = SGDOptimizer(lr=0.1)
 n_epochs = 15
-batch_size = 32
+batch_size = 10
 train_accuracy = []
 validation_accuracy = []
 
