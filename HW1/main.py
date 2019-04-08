@@ -1,4 +1,3 @@
-import random
 import numpy as np
 
 from input_data_processing import load
@@ -6,11 +5,11 @@ from util_functions import shuffle_dataset, plot_accuracy_graph
 from Models import FeedForwardNet
 from Optimizers import SGDOptimizer
 
-random.seed(123)
+np.random.seed(123)
 
 train_data, train_labels, validation_data, validation_labels, test_data, test_labels = load()
-net = FeedForwardNet([784, 50, 20, 10])
-optimizer = SGDOptimizer(lr=0.1)
+net = FeedForwardNet([784, 40, 10])
+optimizer = SGDOptimizer(lr=0.0007)
 n_epochs = 15
 batch_size = 10
 train_accuracy = []
@@ -21,7 +20,6 @@ for e in range(n_epochs):
 
     train_data, train_labels = shuffle_dataset(train_data, train_labels)
     batch_indices = range(0, len(train_data), batch_size)
-    # batch_indices = range(0, 33, batch_size)
     for k in batch_indices:
         x_batch = train_data[k: k + batch_size]
         y_batch = train_labels[k: k + batch_size]

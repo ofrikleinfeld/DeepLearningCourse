@@ -50,6 +50,8 @@ class FeedForwardNet(object):
         self.dw[-1] = delta[-1] @ self.activations[-2].transpose(0, 2, 1)
 
         for l in range(2, self.num_layers):
+            a = self.weights[-l+1].transpose() @ delta[-l+1]
+            b = sigmoid_derivative(self.z_values[-l])
             delta[-l] = self.weights[-l+1].transpose() @ delta[-l+1] * sigmoid_derivative(self.z_values[-l])
             self.dw[-l] = delta[-l] @ self.activations[-l-1].transpose(0, 2, 1)
 

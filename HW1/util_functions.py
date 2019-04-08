@@ -3,8 +3,11 @@ import matplotlib.pyplot as plt
 
 
 def sigmoid(x):
-    return 1.0 / (1.0 + np.exp(-x))
-
+    # b = np.max(x)
+    # y = np.exp(x - b)
+    # return y / y.sum()
+    z = np.where(x >= 0, 1 / (1 + np.exp(-x)), np.exp(x) / (1 + np.exp(x)))
+    return z
 
 def sigmoid_derivative(x):
     return sigmoid(x) * (1 - sigmoid(x))
@@ -19,8 +22,14 @@ def relu_derivative(x):
 
 
 def softmax(x):
-    x_exp = np.exp(x - np.max(x))
-    return x_exp / np.sum(x_exp)
+    # x_exp = np.exp(x - np.max(x, axis=1))
+    # z = x_exp / np.sum(x_exp, axis=0)
+    # return z
+    z = x - np.max(x, axis=1)
+    numerator = np.exp(z)
+    denominator = np.sum(numerator, axis=1)
+    softmax = numerator / denominator[:, np.newaxis]
+    return softmax
 
 
 def shuffle_dataset(data, labels):
