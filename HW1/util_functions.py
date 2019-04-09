@@ -3,11 +3,12 @@ import matplotlib.pyplot as plt
 
 
 def sigmoid(x):
-    # b = np.max(x)
+    # b = np.max(x, axis=1)[:, np.newaxis]
     # y = np.exp(x - b)
-    # return y / y.sum()
+    # return y / np.sum(y, axis=1)[:, np.newaxis]
     z = np.where(x >= 0, 1 / (1 + np.exp(-x)), np.exp(x) / (1 + np.exp(x)))
     return z
+
 
 def sigmoid_derivative(x):
     return sigmoid(x) * (1 - sigmoid(x))
@@ -22,10 +23,7 @@ def relu_derivative(x):
 
 
 def softmax(x):
-    # x_exp = np.exp(x - np.max(x, axis=1))
-    # z = x_exp / np.sum(x_exp, axis=0)
-    # return z
-    z = x - np.max(x, axis=1)
+    z = x - np.max(x, axis=1)[:, np.newaxis]
     numerator = np.exp(z)
     denominator = np.sum(numerator, axis=1)
     softmax = numerator / denominator[:, np.newaxis]

@@ -2,16 +2,18 @@ import numpy as np
 
 from input_data_processing import load
 from util_functions import shuffle_dataset, plot_accuracy_graph
-from Models import FeedForwardNet
+from Models import FeedForwardNet, DropoutFeedForwardNet
 from Optimizers import SGDOptimizer
 
 np.random.seed(123)
 
 train_data, train_labels, validation_data, validation_labels, test_data, test_labels = load()
 net = FeedForwardNet([784, 40, 10])
-optimizer = SGDOptimizer(lr=0.0007)
+# net = DropoutFeedForwardNet(sizes=[784, 40, 10], dropout_rate=0.5)
+# optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.0001)
+optimizer = SGDOptimizer(lr=0.01)
 n_epochs = 15
-batch_size = 10
+batch_size = 1
 train_accuracy = []
 validation_accuracy = []
 

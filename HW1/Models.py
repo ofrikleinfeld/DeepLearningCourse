@@ -50,8 +50,6 @@ class FeedForwardNet(object):
         self.dw[-1] = delta[-1] @ self.activations[-2].transpose(0, 2, 1)
 
         for l in range(2, self.num_layers):
-            a = self.weights[-l+1].transpose() @ delta[-l+1]
-            b = sigmoid_derivative(self.z_values[-l])
             delta[-l] = self.weights[-l+1].transpose() @ delta[-l+1] * sigmoid_derivative(self.z_values[-l])
             self.dw[-l] = delta[-l] @ self.activations[-l-1].transpose(0, 2, 1)
 
@@ -67,3 +65,39 @@ class FeedForwardNet(object):
         output = self.weights[-1] @ a + self.biases[-1]
         return np.argmax(softmax(output), axis=1)
 
+
+class DropoutFeedForwardNet(FeedForwardNet):
+
+    def __init__(self, sizes, dropout_rate):
+        super(DropoutFeedForwardNet, self).__init__(sizes)
+        self.dropout_rate = dropout_rate
+
+    def forward_pass(self, x_batch):
+        self.z_values[0] = x_batch
+        self.activations[0] = x_batch  # no dropout at input layer
+
+        # feed forward until one layer before final layer
+        for l in range(self.num_layers - 2):
+            self.z_values[l + 1] = self.weights[l] @ self.activations[l] + self.biases[l]
+            activations = sigmoid(self.z_values[l + 1])
+            # add dropout layer
+            dropout_layer = self.draw_dropout_layer(activations.shape)
+            self.activations[l + 1] = activations * dropout_layer
+
+        # for final layer, activation is softmax. Will be performed during backprop
+        # no dropout for final (prediction) layer
+        self.z_values[-1] = self.weights[-1] @ self.activations[-2] + self.biases[-1]
+
+    def predict_batch(self, x_batch):
+        a = x_batch
+        for l in range(self.num_layers - 2):
+            z = self.weights[l] @ a + self.biases[l]
+            a = sigmoid(z) * (1 - self.dropout_rate)
+
+        output = self.weights[-1] @ a + self.biases[-1]  # no dropout on last layer just softmax
+        return np.argmax(softmax(output), axis=1)
+
+    def draw_dropout_layer(self, shape):
+        drop_probabilities = np.random.rand(*shape)
+        dropout_layer = np.where(drop_probabilities <= self.dropout_rate, 0, 1)
+        return dropout_layer
