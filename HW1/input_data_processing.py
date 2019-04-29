@@ -32,6 +32,50 @@ def load():
     return training_inputs, training_labels, validation_inputs, validation_labels, test_inputs, test_labels
 
 
+def load_dataset(data_file, labeled=True):
+    data_samples = []
+    labels = []
+    with open(data_file, "r") as f:
+        for line in f:
+            data_with_labels = line[:-1].split(",")
+            label, data = data_with_labels[0],  [float(p) for p in data_with_labels[1:]]
+
+            # transform from 1 based index to 0 based index
+            # then perform one hot encoding
+            if labeled:
+                label_index = int(label) - 1
+                one_hot_label = vectorized_result(label_index)
+                labels.append(one_hot_label)
+
+            data_samples.append(data)
+
+    data_array = np.array(data_samples).reshape((len(data_samples), -1, 1))
+    if labeled:
+        labels_array = np.array(labels)
+        return data_array, labels_array
+    else:
+        return data_array
+
+
+def save_data_as_pickle_gz(data, file_name):
+    with gzip.open(file_name, "wb") as f:
+        pickle.dump(data, f)
+
+
+def load_training_validation_data():
+    with gzip.open("data/training_validation.pkl.gz", "rb") as f:
+        training_data, training_labels, validation_data, validation_labels = pickle.load(f)
+
+    return training_data, training_labels, validation_data, validation_labels
+
+
+def load_test_date():
+    with gzip.open("data/test.pkl.gz", "rb") as f:
+        test_data = pickle.load(f)
+
+    return test_data
+
+
 def vectorized_result(j):
     """Return a 10-dimensional unit vector with a 1.0 in the jth
     position and zeroes elsewhere.  This is used to convert a digit

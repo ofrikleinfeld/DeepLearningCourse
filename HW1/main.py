@@ -1,18 +1,25 @@
 import numpy as np
 
-from input_data_processing import load
+from input_data_processing import load_dataset, save_data_as_pickle_gz, load_training_validation_data
 from util_functions import shuffle_dataset, plot_accuracy_graph
 from Models import FeedForwardNet, DropoutFeedForwardNet
 from Optimizers import SGDOptimizer
 
 np.random.seed(123)
 
-train_data, train_labels, validation_data, validation_labels, test_data, test_labels = load()
-net = FeedForwardNet([784, 40, 10])
+# train_data, train_labels = load_dataset("data/train.csv")
+# validation_data, validation_labels = load_dataset("data/validate.csv")
+# test_data = load_dataset("data/test.csv", labeled=False)
+# save_data_as_pickle_gz((train_data, train_labels, validation_data, validation_labels), file_name="data/training_validation.pkl.gz")
+# save_data_as_pickle_gz(test_data, file_name="data/test.pkl.gz")
+
+train_data, train_labels, validation_data, validation_labels = load_training_validation_data()
+
+net = FeedForwardNet([3072, 100, 10])
+optimizer = SGDOptimizer(lr=0.01)
 # net = DropoutFeedForwardNet(sizes=[784, 40, 10], dropout_rate=0.5)
 # optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.0001)
-optimizer = SGDOptimizer(lr=0.01)
-n_epochs = 15
+n_epochs = 20
 batch_size = 1
 train_accuracy = []
 validation_accuracy = []
