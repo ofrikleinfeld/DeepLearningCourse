@@ -16,11 +16,11 @@ np.random.seed(123)
 
 train_data, train_labels, validation_data, validation_labels = load_training_validation_data()
 
-net = FeedForwardNet([3072, 100, 10])
-optimizer = SGDOptimizer(lr=0.1)
+net = FeedForwardNet([3072, 200, 10])
+optimizer = SGDOptimizer(lr=0.01)
 # net = DropoutFeedForwardNet(sizes=[784, 40, 10], dropout_rate=0.5)
 # optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.0001)
-n_epochs = 20
+n_epochs = 50
 batch_size = 1
 train_accuracy = []
 validation_accuracy = []
@@ -29,12 +29,12 @@ validation_accuracy = []
 file_path = "log/training_output_{0}.txt".format(datetime.datetime.now())
 f = open(file_path, "w")
 
-write_output_to_log(f, "Model Type: {0}".format(type(net)))
-write_output_to_log(f, "Network architecture: {0}".format(net.sizes))
-write_output_to_log(f, "Learning rate: {0}".format(optimizer.lr))
-write_output_to_log(f, "Weights decay and rate: {0}, {1}".format(optimizer.weights_decay, optimizer.weights_decay_rate))
-write_output_to_log(f, "Number of epochs".format(n_epochs))
-write_output_to_log(f, "Batch size".format(batch_size))
+write_output_to_log(f, "Model Type: {0}\n".format(type(net)))
+write_output_to_log(f, "Network architecture: {0}\n".format(net.sizes))
+write_output_to_log(f, "Learning rate: {0}\n".format(optimizer.lr))
+write_output_to_log(f, "Weights decay and rate: {0}, {1}\n".format(optimizer.weights_decay, optimizer.weights_decay_rate))
+write_output_to_log(f, "Number of epochs: {0}\n".format(n_epochs))
+write_output_to_log(f, "Batch size: {0}\n".format(batch_size))
 
 # split to batches and feed to model
 for e in range(n_epochs):
@@ -76,9 +76,9 @@ for e in range(n_epochs):
     train_accuracy.append(train_epoch_accuracy)
     validation_accuracy.append(validation_epoch_accuracy)
 
-    write_output_to_log(f, "Epoch {0}: Train epoch accuracy is {1}".format(e+1, train_epoch_accuracy))
-    write_output_to_log(f, "Epoch {0}: Validation epoch accuracy is {1}".format(e+1, validation_epoch_accuracy))
+    write_output_to_log(f, "Epoch {0}: Train epoch accuracy is {1}\n".format(e+1, train_epoch_accuracy))
+    write_output_to_log(f, "Epoch {0}: Validation epoch accuracy is {1}\n".format(e+1, validation_epoch_accuracy))
 
-write_output_to_log(f, "Training ended at: {0}".format(datetime.datetime.now()))
+write_output_to_log(f, "Training ended at: {0}\n".format(datetime.datetime.now()))
 f.close()
 plot_accuracy_graph(train_accuracy, validation_accuracy)
