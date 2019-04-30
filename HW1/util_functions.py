@@ -35,6 +35,9 @@ def shuffle_dataset(data, labels):
     random_indices = np.random.permutation(len(data))
     return data[random_indices], labels[random_indices]
 
+def write_output_to_log(fp, message):
+    fp.write(message)
+
 
 def plot_accuracy_graph(train_accuracy, test_accuracy):
     epochs = range(1, len(train_accuracy)+1)

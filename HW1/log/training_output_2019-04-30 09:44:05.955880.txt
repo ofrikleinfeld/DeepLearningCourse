@@ -1,0 +1,1 @@
+Model Type: <class 'Models.FeedForwardNet'>Network architecture: [3072, 100, 10]Learning rate: 0.1Weights decay and rate: None, NoneNumber of epochsBatch sizeEpoch 1: Train epoch accuracy is 0.14535Epoch 1: Validation epoch accuracy is 0.149
