@@ -8,22 +8,23 @@ from Optimizers import SGDOptimizer
 
 np.random.seed(123)
 
-# train_data, train_labels = load_dataset("data/train.csv")
-# validation_data, validation_labels = load_dataset("data/validate.csv")
-# test_data = load_dataset("data/test.csv", labeled=False)
-# save_data_as_pickle_gz((train_data, train_labels, validation_data, validation_labels), file_name="data/training_validation.pkl.gz")
-# save_data_as_pickle_gz(test_data, file_name="data/test.pkl.gz")
+#train_mean, train_std, train_data, train_labels = load_dataset("data/train.csv", normalize=True)
+#validation_data, validation_labels = load_dataset("data/validate.csv", normalize=(train_mean, train_std))
+#test_data = load_dataset("data/test.csv", labeled=False, normalize=(train_mean, train_std))
+#save_data_as_pickle_gz((train_data, train_labels, validation_data, validation_labels), file_name="data/training_validation_normalized.pkl.gz")
+#save_data_as_pickle_gz(test_data, file_name="data/test_normalized.pkl.gz")
 
-train_data, train_labels, validation_data, validation_labels = load_training_validation_data()
-
-net = FeedForwardNet([3072, 200, 10])
-optimizer = SGDOptimizer(lr=0.01)
+train_data, train_labels, validation_data, validation_labels = load_training_validation_data('data/training_validation_normalized.pkl.gz')
+net = DropoutFeedForwardNet(sizes=[3072, 768, 192, 48, 10], dropout_rate=0.5)
+optimizer = SGDOptimizer(lr=3e-3, weights_decay='L2', weights_decay_rate=0.0001)
 # net = DropoutFeedForwardNet(sizes=[784, 40, 10], dropout_rate=0.5)
 # optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.0001)
 n_epochs = 50
-batch_size = 1
+batch_size = 32
 train_accuracy = []
 validation_accuracy = []
+load_weights = None #('best_weights.npy', 'best_biases.npy')
+sw_threshold = 0.34
 
 # write to log file
 file_path = "log/training_output_{0}.txt".format(datetime.datetime.now())
@@ -36,6 +37,12 @@ write_output_to_log(f, "Weights decay and rate: {0}, {1}\n".format(optimizer.wei
 write_output_to_log(f, "Number of epochs: {0}\n".format(n_epochs))
 write_output_to_log(f, "Batch size: {0}\n".format(batch_size))
 
+if load_weights:
+    best_w = np.load(load_weights[0])
+    best_biases = np.load(load_weights[1])
+    write_output_to_log(f, "Weights init from files: {0}, {1}".format(
+        load_weights[0], load_weights[1]))
+    net.set_parameters(best_w, best_biases)
 # split to batches and feed to model
 for e in range(n_epochs):
 
@@ -56,7 +63,7 @@ for e in range(n_epochs):
     # compute epoch accuracy for train and validation data
     train_batch_indices = range(0, len(train_data), batch_size)
     validation_batch_indices = range(0, len(validation_data), batch_size)
-
+    optimizer.lr = optimizer.lr / (np.log(2+e))
     train_num_correct = 0
     for k in train_batch_indices:
         x_batch = train_data[k: k + batch_size]
@@ -73,6 +80,13 @@ for e in range(n_epochs):
 
     train_epoch_accuracy = train_num_correct / len(train_data)
     validation_epoch_accuracy = validation_num_correct / len(validation_data)
+    if validation_accuracy and validation_epoch_accuracy > max(validation_accuracy) \
+        and validation_epoch_accuracy > sw_threshold:
+        write_output_to_log(f, "Best validation accuracy %.2f so far. Saving weights" 
+                            % validation_epoch_accuracy)
+        np.save('best_weights', new_w)
+        np.save('best_biases', new_b)
+        
     train_accuracy.append(train_epoch_accuracy)
     validation_accuracy.append(validation_epoch_accuracy)
 
