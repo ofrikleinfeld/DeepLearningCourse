@@ -6,6 +6,7 @@ from util_functions import shuffle_dataset, plot_accuracy_graph, write_output_to
 from Models import FeedForwardNet, DropoutFeedForwardNet
 from Optimizers import SGDOptimizer
 
+
 np.random.seed(123)
 
 #train_mean, train_std, train_data, train_labels = load_dataset("data/train.csv", normalize=True)
@@ -16,7 +17,7 @@ np.random.seed(123)
 
 train_data, train_labels, validation_data, validation_labels = load_training_validation_data('data/training_validation_normalized.pkl.gz')
 net = DropoutFeedForwardNet(sizes=[3072, 768, 192, 48, 10], dropout_rate=0.5)
-optimizer = SGDOptimizer(lr=3e-3, weights_decay='L2', weights_decay_rate=0.0001)
+optimizer = SGDOptimizer(lr=0.5, weights_decay='L2', weights_decay_rate=0.0001)
 # net = DropoutFeedForwardNet(sizes=[784, 40, 10], dropout_rate=0.5)
 # optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.0001)
 n_epochs = 50
@@ -36,6 +37,8 @@ write_output_to_log(f, "Learning rate: {0}\n".format(optimizer.lr))
 write_output_to_log(f, "Weights decay and rate: {0}, {1}\n".format(optimizer.weights_decay, optimizer.weights_decay_rate))
 write_output_to_log(f, "Number of epochs: {0}\n".format(n_epochs))
 write_output_to_log(f, "Batch size: {0}\n".format(batch_size))
+
+ni_cnt = 0
 
 if load_weights:
     best_w = np.load(load_weights[0])
@@ -63,7 +66,6 @@ for e in range(n_epochs):
     # compute epoch accuracy for train and validation data
     train_batch_indices = range(0, len(train_data), batch_size)
     validation_batch_indices = range(0, len(validation_data), batch_size)
-    optimizer.lr = optimizer.lr / (np.log(2+e))
     train_num_correct = 0
     for k in train_batch_indices:
         x_batch = train_data[k: k + batch_size]
@@ -86,7 +88,12 @@ for e in range(n_epochs):
                             % validation_epoch_accuracy)
         np.save('best_weights', new_w)
         np.save('best_biases', new_b)
-        
+        ni_cnt = 0
+    elif validation_accuracy and validation_epoch_accuracy < max(validation_accuracy):
+        optimizer.lr = optimizer.lr / (np.log(3+ni_cnt))
+        write_output_to_log(f, "No improvement. lr decreased to %.4f" 
+                            % optimizer.lr)
+        ni_cnt += 1
     train_accuracy.append(train_epoch_accuracy)
     validation_accuracy.append(validation_epoch_accuracy)
 
