@@ -1,7 +1,8 @@
 import datetime
+import os
 import numpy as np
 
-from input_data_processing import load_dataset, save_data_as_pickle_gz, load_training_validation_data
+from input_data_processing import load_dataset, save_data_as_pickle_gz, load_training_validation_data, crop_dataset
 from util_functions import shuffle_dataset, plot_accuracy_graph, write_output_to_log
 from Models import FeedForwardNet, DropoutFeedForwardNet
 from Optimizers import SGDOptimizer
@@ -16,14 +17,21 @@ np.random.seed(123)
 
 train_data, train_labels, validation_data, validation_labels = load_training_validation_data()
 
-net = FeedForwardNet([3072, 200, 10])
+train_data = crop_dataset(train_data)
+validation_data = crop_dataset(validation_data)
+net_input_shape = train_data.shape[1]
+net_output_shape = train_labels.shape[1]
+
+net = DropoutFeedForwardNet(sizes=[net_input_shape, 1024, 600, net_output_shape], dropout_rate=0.5)
+# net = DropoutFeedForwardNet.load_model_from_pickle(os.path.join("models", "DropoutFeedForwardNet.pkl.gz"))
 optimizer = SGDOptimizer(lr=0.01)
 # net = DropoutFeedForwardNet(sizes=[784, 40, 10], dropout_rate=0.5)
 # optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.0001)
 n_epochs = 50
-batch_size = 1
+batch_size = 30
 train_accuracy = []
 validation_accuracy = []
+max_validation_accuracy = 0
 
 # write to log file
 file_path = "log/training_output_{0}.txt".format(datetime.datetime.now())
@@ -78,6 +86,12 @@ for e in range(n_epochs):
 
     write_output_to_log(f, "Epoch {0}: Train epoch accuracy is {1}\n".format(e+1, train_epoch_accuracy))
     write_output_to_log(f, "Epoch {0}: Validation epoch accuracy is {1}\n".format(e+1, validation_epoch_accuracy))
+
+    if validation_epoch_accuracy > max_validation_accuracy:
+        max_validation_accuracy = validation_epoch_accuracy
+        write_output_to_log(f, "Epoch {0}: Validation epoch accuracy is the maximal so far, saving model to disk\n".format(e + 1))
+        net.save_model_to_pickle()
+
 
 write_output_to_log(f, "Training ended at: {0}\n".format(datetime.datetime.now()))
 f.close()

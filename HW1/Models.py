@@ -1,3 +1,6 @@
+import pickle
+import gzip
+import os
 import numpy as np
 
 from util_functions import relu, relu_derivative, softmax, sigmoid, sigmoid_derivative
@@ -64,6 +67,21 @@ class FeedForwardNet(object):
 
         output = self.weights[-1] @ a + self.biases[-1]
         return np.argmax(softmax(output), axis=1)
+
+    def save_model_to_pickle(self):
+        if not os.path.exists("models"):
+            os.mkdir("models")
+
+        class_name = self.__class__.__name__
+        file_name = "{0}.pkl.gz".format(class_name)
+        file_path = os.path.join("models", file_name)
+        with gzip.open(file_path, "wb") as f:
+            pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+
+    @staticmethod
+    def load_model_from_pickle(file_path):
+        with gzip.open(file_path, "rb") as f:
+            return pickle.load(f)
 
 
 class DropoutFeedForwardNet(FeedForwardNet):

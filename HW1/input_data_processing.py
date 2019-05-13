@@ -84,3 +84,20 @@ def vectorized_result(j):
     e = np.zeros((10, 1))
     e[j] = 1.0
     return e
+
+
+def crop_dataset(data, desired_dim=28):
+    dataset_length, features_flatten_size, _ = data.shape
+    num_channels = 3
+    image_size = int(np.sqrt(features_flatten_size / num_channels))
+
+    total_crop_size = image_size - desired_dim
+    edges_crop_size = int(total_crop_size / 2)
+    start_edge = edges_crop_size
+    end_edge = image_size - edges_crop_size
+
+    data_original_shape = data.reshape((dataset_length, num_channels, image_size, image_size))
+    data_cropped = data_original_shape[:, :, start_edge:end_edge, start_edge:end_edge]
+    data_cropped_flatten = data_cropped.reshape((dataset_length, -1, 1))
+
+    return data_cropped_flatten
