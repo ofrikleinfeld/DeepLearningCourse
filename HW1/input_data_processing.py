@@ -32,7 +32,7 @@ def load():
     return training_inputs, training_labels, validation_inputs, validation_labels, test_inputs, test_labels
 
 
-def load_dataset(data_file, labeled=True, normalize = False):
+def load_dataset(data_file, labeled=True, normalize=False):
     data_samples = []
     labels = []
     outputs = []
@@ -92,3 +92,14 @@ def vectorized_result(j):
     e = np.zeros((10, 1))
     e[j] = 1.0
     return e
+
+
+def crop_dataset(data, desired_dim=28):
+    batch_size, flatten_size, _ = data.shape
+    num_channels = 3
+    image_size = int(np.sqrt(flatten_size / num_channels))
+    data_original_shape = data.reshape((batch_size, num_channels, image_size, image_size))
+    data_cropped = data_original_shape[:, :, :desired_dim, :desired_dim]
+    data_cropped_flatten = data_cropped.reshape((batch_size, -1, 1))
+
+    return data_cropped_flatten

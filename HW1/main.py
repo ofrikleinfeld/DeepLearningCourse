@@ -1,7 +1,7 @@
 import datetime
 import numpy as np
 
-from input_data_processing import load_dataset, save_data_as_pickle_gz, load_training_validation_data
+from input_data_processing import load_dataset, save_data_as_pickle_gz, load_training_validation_data, crop_dataset
 from util_functions import shuffle_dataset, plot_accuracy_graph, write_output_to_log
 from Models import FeedForwardNet, DropoutFeedForwardNet
 from Optimizers import SGDOptimizer
@@ -10,21 +10,28 @@ from Optimizers import SGDOptimizer
 np.random.seed(123)
 
 #train_mean, train_std, train_data, train_labels = load_dataset("data/train.csv", normalize=True)
-#validation_data, validation_labels = load_dataset("data/validate.csv", normalize=(train_mean, train_std))
-#test_data = load_dataset("data/test.csv", labeled=False, normalize=(train_mean, train_std))
+# validation_data, validation_labels = load_dataset("data/validate.csv", normalize=(train_mean, train_std))
+# test_data = load_dataset("data/test.csv", labeled=False, normalize=(train_mean, train_std))
 #save_data_as_pickle_gz((train_data, train_labels, validation_data, validation_labels), file_name="data/training_validation_normalized.pkl.gz")
 #save_data_as_pickle_gz(test_data, file_name="data/test_normalized.pkl.gz")
 
-train_data, train_labels, validation_data, validation_labels = load_training_validation_data('data/training_validation_normalized.pkl.gz')
-net = DropoutFeedForwardNet(sizes=[3072, 1024, 600, 10], dropout_rate=0.6)
-optimizer = SGDOptimizer(lr=0.1, weights_decay='L2', weights_decay_rate=0.0001)
+train_data, train_labels, validation_data, validation_labels = load_training_validation_data('data/training_validation.pkl.gz')
+
+train_data = crop_dataset(train_data)
+validation_data = crop_dataset(validation_data)
+net_input_shape = train_data.shape[1]
+net_output_shape = train_labels.shape[1]
+
+net = DropoutFeedForwardNet(sizes=[net_input_shape, 1024, 600, net_output_shape], dropout_rate=0.5)
+optimizer = SGDOptimizer(lr=0.01)
+# optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.01)
 # net = DropoutFeedForwardNet(sizes=[784, 40, 10], dropout_rate=0.5)
 # optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.0001)
 n_epochs = 50
 batch_size = 32
 train_accuracy = []
 validation_accuracy = []
-load_weights =  ('best_weights.npy', 'best_biases.npy')
+load_weights = None #('best_weights.npy', 'best_biases.npy')
 sw_threshold = 0.429
 
 # write to log file
