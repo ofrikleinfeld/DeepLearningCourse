@@ -12,3 +12,6 @@ data/
 
 # ignore pdf
 *.pdf
+
+# ignore log folder
+log/
