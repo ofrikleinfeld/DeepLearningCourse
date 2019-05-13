@@ -16,16 +16,16 @@ np.random.seed(123)
 #save_data_as_pickle_gz(test_data, file_name="data/test_normalized.pkl.gz")
 
 train_data, train_labels, validation_data, validation_labels = load_training_validation_data('data/training_validation_normalized.pkl.gz')
-net = DropoutFeedForwardNet(sizes=[3072, 768, 192, 48, 10], dropout_rate=0.5)
-optimizer = SGDOptimizer(lr=0.5, weights_decay='L2', weights_decay_rate=0.0001)
+net = DropoutFeedForwardNet(sizes=[3072, 1024, 600, 10], dropout_rate=0.6)
+optimizer = SGDOptimizer(lr=0.1, weights_decay='L2', weights_decay_rate=0.0001)
 # net = DropoutFeedForwardNet(sizes=[784, 40, 10], dropout_rate=0.5)
 # optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.0001)
 n_epochs = 50
 batch_size = 32
 train_accuracy = []
 validation_accuracy = []
-load_weights = None #('best_weights.npy', 'best_biases.npy')
-sw_threshold = 0.34
+load_weights =  ('best_weights.npy', 'best_biases.npy')
+sw_threshold = 0.429
 
 # write to log file
 file_path = "log/training_output_{0}.txt".format(datetime.datetime.now())
