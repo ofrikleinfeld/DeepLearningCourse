@@ -1,9 +1,13 @@
+from util_functions import relu, relu_derivative, softmax, sigmoid, sigmoid_derivative
+
 import pickle
 import gzip
 import os
-import numpy as np
 
-from util_functions import relu, relu_derivative, softmax, sigmoid, sigmoid_derivative
+import numpy as np
+from keras.models import Sequential
+from keras.layers import Dense, Dropout
+from keras.optimizers import SGD
 
 
 class FeedForwardNet(object):
@@ -119,3 +123,35 @@ class DropoutFeedForwardNet(FeedForwardNet):
         drop_probabilities = np.random.rand(*shape)
         dropout_layer = np.where(drop_probabilities <= self.dropout_rate, 0, 1)
         return dropout_layer
+
+
+class KerasDropoutFeedForwardNet(object):
+
+    def __init__(self, sizes, dropout_rate):
+        self.sizes = sizes
+        self.dropout_rate = dropout_rate
+        self.model = Sequential()
+        self._define_network()
+
+    def _define_network(self):
+        input_size = self.sizes[0]
+        first_hidden_size = self.sizes[1]
+        output_size = self.sizes[-1]
+
+        self.model.add(Dense(first_hidden_size, activation='sigmoid', input_dim=input_size))
+        self.model.add(Dropout(self.dropout_rate))
+
+        for hidden_size in self.sizes[2:-1]:
+            self.model.add(Dense(hidden_size, activation='sigmoid'))
+            self.model.add(Dropout(self.dropout_rate))
+
+        self.model.add(Dense(output_size, activation='softmax'))
+
+    def compile_model(self, lr=0.01, decay_rate=1e-6):
+        sgd_optimizer = SGD(lr=lr, decay=decay_rate)
+        self.model.compile(loss='categorical_crossentropy', optimizer=sgd_optimizer, metrics=['accuracy'])
+
+    def train_model(self, x_train, y_train, x_validation, y_validation, epochs=5, batch_size=32):
+        print(self.model.summary())
+        self.model.fit(x_train, y_train, validation_data=(x_validation, y_validation), epochs=epochs, batch_size=batch_size)
+
