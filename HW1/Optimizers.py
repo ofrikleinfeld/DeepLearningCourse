@@ -11,12 +11,12 @@ class SGDOptimizer(object):
         # perform weights decay
         if self.weights_decay is not None:
             if self.weights_decay == 'L1':
-                weights = [w - self.weights_decay_rate for w in weights]
-                biases = [b - self.weights_decay_rate for b in biases]
+                weights = [w - self.lr * self.weights_decay_rate for w in weights]
+                biases = [b - self.lr * self.weights_decay_rate for b in biases]
 
             elif self.weights_decay == 'L2':
-                weights = [w - self.weights_decay_rate * w for w in weights]
-                biases = [b - self.weights_decay_rate * b for b in biases]
+                weights = [w - self.lr * self.weights_decay_rate * w for w in weights]
+                biases = [b - self.lr * self.weights_decay_rate * b for b in biases]
 
         # perform SGD step with average batch gradient
         new_weights = [w - self.lr * np.sum(dw, axis=0) / batch_size for w, dw in zip(weights, dw)]
