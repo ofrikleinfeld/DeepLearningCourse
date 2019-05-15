@@ -12,3 +12,9 @@ data/
 
 # ignore pdf
 *.pdf
+
+# ignore trained model files
+models/
+
+# ignore log files of training runs
+log/

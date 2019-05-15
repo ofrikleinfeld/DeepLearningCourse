@@ -5,9 +5,9 @@ import gzip
 import os
 
 import numpy as np
-from keras.models import Sequential
-from keras.layers import Dense, Dropout
-from keras.optimizers import SGD
+# from keras.models import Sequential
+# from keras.layers import Dense, Dropout
+# from keras.optimizers import SGD
 
 
 class FeedForwardNet(object):
@@ -44,7 +44,7 @@ class FeedForwardNet(object):
         # feed forward until one layer before final layer
         for l in range(self.num_layers - 2):
             self.z_values[l+1] = self.weights[l] @ self.activations[l] + self.biases[l]
-            self.activations[l+1] = sigmoid(self.z_values[l+1])
+            self.activations[l+1] = relu(self.z_values[l+1])
 
         # for final layer, activation is softmax. Will be performed during backprop
         self.z_values[-1] = self.weights[-1] @ self.activations[-2] + self.biases[-1]
@@ -57,7 +57,7 @@ class FeedForwardNet(object):
         self.dw[-1] = delta[-1] @ self.activations[-2].transpose(0, 2, 1)
 
         for l in range(2, self.num_layers):
-            delta[-l] = self.weights[-l+1].transpose() @ delta[-l+1] * sigmoid_derivative(self.z_values[-l])
+            delta[-l] = self.weights[-l+1].transpose() @ delta[-l+1] * relu_derivative(self.z_values[-l])
             self.dw[-l] = delta[-l] @ self.activations[-l-1].transpose(0, 2, 1)
 
         self.db = delta
@@ -67,7 +67,7 @@ class FeedForwardNet(object):
         a = x_batch
         for l in range(self.num_layers - 2):
             z = self.weights[l] @ a + self.biases[l]
-            a = sigmoid(z)
+            a = relu(z)
 
         output = self.weights[-1] @ a + self.biases[-1]
         return np.argmax(softmax(output), axis=1)
@@ -101,7 +101,7 @@ class DropoutFeedForwardNet(FeedForwardNet):
         # feed forward until one layer before final layer
         for l in range(self.num_layers - 2):
             self.z_values[l + 1] = self.weights[l] @ self.activations[l] + self.biases[l]
-            activations = sigmoid(self.z_values[l + 1])
+            activations = relu(self.z_values[l + 1])
             # add dropout layer
             dropout_layer = self.draw_dropout_layer(activations.shape)
             self.activations[l + 1] = activations * dropout_layer
@@ -114,7 +114,7 @@ class DropoutFeedForwardNet(FeedForwardNet):
         a = x_batch
         for l in range(self.num_layers - 2):
             z = self.weights[l] @ a + self.biases[l]
-            a = sigmoid(z) * (1 - self.dropout_rate)
+            a = relu(z) * (1 - self.dropout_rate)
 
         output = self.weights[-1] @ a + self.biases[-1]  # no dropout on last layer just softmax
         return np.argmax(softmax(output), axis=1)
@@ -125,33 +125,33 @@ class DropoutFeedForwardNet(FeedForwardNet):
         return dropout_layer
 
 
-class KerasDropoutFeedForwardNet(object):
-
-    def __init__(self, sizes, dropout_rate):
-        self.sizes = sizes
-        self.dropout_rate = dropout_rate
-        self.model = Sequential()
-        self._define_network()
-
-    def _define_network(self):
-        input_size = self.sizes[0]
-        first_hidden_size = self.sizes[1]
-        output_size = self.sizes[-1]
-
-        self.model.add(Dense(first_hidden_size, activation='sigmoid', input_dim=input_size))
-        self.model.add(Dropout(self.dropout_rate))
-
-        for hidden_size in self.sizes[2:-1]:
-            self.model.add(Dense(hidden_size, activation='sigmoid'))
-            self.model.add(Dropout(self.dropout_rate))
-
-        self.model.add(Dense(output_size, activation='softmax'))
-
-    def compile_model(self, lr=0.01, decay_rate=1e-6):
-        sgd_optimizer = SGD(lr=lr, decay=decay_rate)
-        self.model.compile(loss='categorical_crossentropy', optimizer=sgd_optimizer, metrics=['accuracy'])
-
-    def train_model(self, x_train, y_train, x_validation, y_validation, epochs=5, batch_size=32):
-        print(self.model.summary())
-        self.model.fit(x_train, y_train, validation_data=(x_validation, y_validation), epochs=epochs, batch_size=batch_size)
+# class KerasDropoutFeedForwardNet(object):
+#
+#     def __init__(self, sizes, dropout_rate):
+#         self.sizes = sizes
+#         self.dropout_rate = dropout_rate
+#         self.model = Sequential()
+#         self._define_network()
+#
+#     def _define_network(self):
+#         input_size = self.sizes[0]
+#         first_hidden_size = self.sizes[1]
+#         output_size = self.sizes[-1]
+#
+#         self.model.add(Dense(first_hidden_size, activation='sigmoid', input_dim=input_size))
+#         self.model.add(Dropout(self.dropout_rate))
+#
+#         for hidden_size in self.sizes[2:-1]:
+#             self.model.add(Dense(hidden_size, activation='sigmoid'))
+#             self.model.add(Dropout(self.dropout_rate))
+#
+#         self.model.add(Dense(output_size, activation='softmax'))
+#
+#     def compile_model(self, lr=0.01, decay_rate=1e-6):
+#         sgd_optimizer = SGD(lr=lr, decay=decay_rate)
+#         self.model.compile(loss='categorical_crossentropy', optimizer=sgd_optimizer, metrics=['accuracy'])
+#
+#     def train_model(self, x_train, y_train, x_validation, y_validation, epochs=5, batch_size=32):
+#         print(self.model.summary())
+#         self.model.fit(x_train, y_train, validation_data=(x_validation, y_validation), epochs=epochs, batch_size=batch_size)
 

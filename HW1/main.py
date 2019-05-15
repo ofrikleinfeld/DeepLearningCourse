@@ -4,7 +4,7 @@ import numpy as np
 
 from input_data_processing import load_dataset, save_data_as_pickle_gz, load_training_validation_data, crop_dataset
 from util_functions import shuffle_dataset, plot_accuracy_graph, write_output_to_log
-from Models import FeedForwardNet, DropoutFeedForwardNet, KerasDropoutFeedForwardNet
+from Models import FeedForwardNet, DropoutFeedForwardNet
 from Optimizers import SGDOptimizer
 
 np.random.seed(123)
@@ -39,12 +39,12 @@ net = DropoutFeedForwardNet(sizes=[net_input_shape, 256, net_output_shape], drop
 # net = DropoutFeedForwardNet.load_model_from_pickle(os.path.join("models", "DropoutFeedForwardNet.pkl.gz"))
 # optimizer = SGDOptimizer(lr=0.01)
 # net = DropoutFeedForwardNet(sizes=[784, 40, 10], dropout_rate=0.5)
-optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.00001)
+optimizer = SGDOptimizer(lr=0.005, weights_decay='L2', weights_decay_rate=0.00001)
 n_epochs = 80
 batch_size = 32
 train_accuracy = []
 validation_accuracy = []
-max_validation_accuracy = 0.3
+max_validation_accuracy = 0.37
 
 # write to log file
 file_path = "log/training_output_{0}.txt".format(datetime.datetime.now())
