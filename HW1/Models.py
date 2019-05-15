@@ -20,8 +20,9 @@ class FeedForwardNet(object):
     def __init__(self, sizes):
         self.num_layers = len(sizes)
         self.sizes = sizes
-        self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
-        self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
+        # self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
+        # self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
+        self.weights, self.biases = self.xavier_initialization()
         self.z_values = [None] * self.num_layers
         self.activations = [None] * self.num_layers
         self.dw = [None] * (self.num_layers - 1)
@@ -71,6 +72,14 @@ class FeedForwardNet(object):
 
         output = self.weights[-1] @ a + self.biases[-1]
         return np.argmax(softmax(output), axis=1)
+
+    def xavier_initialization(self):
+        biases = [np.random.normal(loc=0, scale=input_size, size=(layer_size, 1))
+                  for layer_size, input_size in zip(self.sizes[1:], self.sizes[:-1])]
+        weights = [np.random.normal(loc=0, scale=x, size=(y, x))
+                   for x, y in zip(self.sizes[:-1], self.sizes[1:])]
+
+        return weights, biases
 
     def save_model_to_pickle(self):
         if not os.path.exists("models"):

@@ -101,3 +101,15 @@ def crop_dataset(data, desired_dim=28):
     data_cropped_flatten = data_cropped.reshape((dataset_length, -1, 1))
 
     return data_cropped_flatten
+
+
+def center_dataset(data, known_mean=None):
+    computed_mean = None
+
+    if known_mean is not None:
+        centered_data = data - known_mean
+    else:
+        computed_mean = np.mean(data, axis=0)
+        centered_data = data - computed_mean
+
+    return centered_data, computed_mean
