@@ -14,7 +14,7 @@ class FeedForwardNet(object):
         self.num_layers = len(sizes)
         self.sizes = sizes
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
-        self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
+        self.weights = [np.random.randn(y, x) * np.sqrt((2/sizes[i])) for i, (x, y) in enumerate(zip(sizes[:-1], sizes[1:]))]
         self.z_values = [None] * self.num_layers
         self.activations = [None] * self.num_layers
         self.dw = [None] * (self.num_layers - 1)
@@ -68,20 +68,21 @@ class FeedForwardNet(object):
 
 class DropoutFeedForwardNet(FeedForwardNet):
 
-    def __init__(self, sizes, dropout_rate):
+    def __init__(self, sizes, dropout_rates):
         super(DropoutFeedForwardNet, self).__init__(sizes)
-        self.dropout_rate = dropout_rate
+        self.dropout_rates = dropout_rates
 
     def forward_pass(self, x_batch):
         self.z_values[0] = x_batch
-        self.activations[0] = x_batch  # no dropout at input layer
+        dropout_layer = self.draw_dropout_layer(x_batch.shape, 0)
+        self.activations[0] = x_batch * dropout_layer 
 
         # feed forward until one layer before final layer
         for l in range(self.num_layers - 2):
             self.z_values[l + 1] = self.weights[l] @ self.activations[l] + self.biases[l]
             activations = sigmoid(self.z_values[l + 1])
             # add dropout layer
-            dropout_layer = self.draw_dropout_layer(activations.shape)
+            dropout_layer = self.draw_dropout_layer(activations.shape, l+1)
             self.activations[l + 1] = activations * dropout_layer
 
         # for final layer, activation is softmax. Will be performed during backprop
@@ -89,15 +90,15 @@ class DropoutFeedForwardNet(FeedForwardNet):
         self.z_values[-1] = self.weights[-1] @ self.activations[-2] + self.biases[-1]
 
     def predict_batch(self, x_batch):
-        a = x_batch
+        a = x_batch * (1 - self.dropout_rates[0])
         for l in range(self.num_layers - 2):
             z = self.weights[l] @ a + self.biases[l]
-            a = sigmoid(z) * (1 - self.dropout_rate)
+            a = sigmoid(z) * (1 - self.dropout_rates[l+1])
 
         output = self.weights[-1] @ a + self.biases[-1]  # no dropout on last layer just softmax
         return np.argmax(softmax(output), axis=1)
 
-    def draw_dropout_layer(self, shape):
+    def draw_dropout_layer(self, shape, layer):
         drop_probabilities = np.random.rand(*shape)
-        dropout_layer = np.where(drop_probabilities <= self.dropout_rate, 0, 1)
+        dropout_layer = np.where(drop_probabilities <= self.dropout_rates[layer], 0, 1)
         return dropout_layer
