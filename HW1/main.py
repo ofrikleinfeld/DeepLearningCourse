@@ -7,28 +7,34 @@ from Models import FeedForwardNet, DropoutFeedForwardNet
 from Optimizers import SGDOptimizer
 
 
-np.random.seed(1312)
+#np.random.seed(1312)
 
-#train_mean, train_std, train_data, train_labels = load_dataset("data/train.csv", normalize=True)
-#validation_data, validation_labels = load_dataset("data/validate.csv", normalize=(train_mean, train_std))
+#train_mean, train_std, train_data, train_labels = load_dataset("data/train_cropped_smaller.csv", normalize=True)
+#validation_data, validation_labels = load_dataset("data/valid_cropped_smaller.csv", normalize=(train_mean, train_std))
 #test_data = load_dataset("data/test.csv", labeled=False, normalize=(train_mean, train_std))
-#save_data_as_pickle_gz((train_data, train_labels, validation_data, validation_labels), file_name="data/training_validation_normalized.pkl.gz")
+#save_data_as_pickle_gz((train_data, train_labels, validation_data, validation_labels), 
+#                       file_name="data/training_cropped_smaller_validation_normalized.pkl.gz")
 #save_data_as_pickle_gz(test_data, file_name="data/test_normalized.pkl.gz")
 
-train_data, train_labels, validation_data, validation_labels = load_training_validation_data('data/training_validation_normalized.pkl.gz')
-train_data_mirror, train_labels_mirror, _, _ = load_training_validation_data('data/training_mirrored_validation_normalized.pkl.gz')
+#train_mean, train_std, train_data, train_labels = load_dataset("data/train_mirrored_cropped_smaller.csv", normalize=True)
+#validation_data, validation_labels = load_dataset("data/valid_cropped_smaller.csv", normalize=(train_mean, train_std))
+#save_data_as_pickle_gz((train_data, train_labels, validation_data, validation_labels), 
+#                       file_name="data/training_mirrored_cropped_smaller_validation_normalized.pkl.gz")
+
+train_data, train_labels, validation_data, validation_labels = load_training_validation_data('data/training_cropped_smaller_validation_normalized.pkl.gz')
+train_data_mirror, train_labels_mirror, _, _ = load_training_validation_data('data/training_mirrored_cropped_smaller_validation_normalized.pkl.gz')
 #train_data_cropped, train_labels_cropped, _, _ = load_training_validation_data('data/training_cropped_validation_normalized.pkl.gz')
 train_data = np.vstack((train_data, train_data_mirror))
 train_labels = np.vstack((train_labels, train_labels_mirror))
-net = DropoutFeedForwardNet(sizes=[3072, 256, 10], dropout_rates=[0.1, 0.5])
-optimizer = SGDOptimizer(lr=0.05)
+net = DropoutFeedForwardNet(sizes=[2352, 256, 10], dropout_rates=[0.1, 0.5])
+optimizer = SGDOptimizer(lr=0.9)
 # net = DropoutFeedForwardNet(sizes=[784, 40, 10], dropout_rate=0.5)
 # optimizer = SGDOptimizer(lr=0.01, weights_decay='L2', weights_decay_rate=0.0001)
 n_epochs = 500
-batch_size = 64
+batch_size = 128
 train_accuracy = []
 validation_accuracy = []
-load_weights =  ('best_weights.npy', 'best_biases.npy')
+load_weights = None# ('best_weights_1024_10.npy', 'best_biases_1024_10.npy')
 sw_threshold = 0.479
 
 # write to log file
@@ -98,9 +104,10 @@ for e in range(n_epochs):
     elif validation_accuracy and validation_epoch_accuracy < max(validation_accuracy):
         ni_cnt += 1
         if ni_cnt > 8:
-            optimizer.lr = optimizer.lr * 0.9
+            optimizer.lr = optimizer.lr * 0.95
             write_output_to_log(f, "No improvement. lr decreased to %.4f" 
                                 % optimizer.lr)
+            ni_cnt = 4
     else:
         ni_cnt = 0
     train_accuracy.append(train_epoch_accuracy)
