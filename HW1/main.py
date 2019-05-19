@@ -36,8 +36,6 @@ n_epochs = 500
 batch_size = 128
 train_accuracy = []
 validation_accuracy = []
-# load_weights = ('best_weights.npy', 'best_biases.npy')
-# sw_threshold = 0.479
 
 # write to log file
 file_path = "log/training_output_{0}.txt".format(datetime.datetime.now())
@@ -52,15 +50,8 @@ write_output_to_log(f, "Batch size: {0}\n".format(batch_size))
 
 ni_cnt = 0
 
-
 train_mean, train_std, _, _ = load_dataset("data/train_cropped_smaller.csv", normalize=True)
 test_data, _ = load_dataset("data/test_cropped_smaller.csv", labeled=True, normalize=(train_mean, train_std))
-
-
-# if load_weights:
-#     best_w = np.load(load_weights[0])
-#     best_biases = np.load(load_weights[1])
-#     net.set_parameters(best_w, best_biases)
 
 
 # split to batches and feed to model

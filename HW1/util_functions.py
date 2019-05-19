@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 def sigmoid(x):
@@ -42,12 +42,12 @@ def write_output_to_log(fp, message, also_print=True):
         print(message[:-1])
 
 
-def plot_accuracy_graph(train_accuracy, test_accuracy):
-    epochs = range(1, len(train_accuracy)+1)
-    plt.plot(epochs, train_accuracy, label='Training data')
-    plt.plot(epochs, test_accuracy, label='Validation data')
-    plt.legend(loc='best')
-    plt.ylim([0, 1])
-    plt.xlabel('Epoch')
-    plt.ylabel('Prediction Accuracy')
-    plt.savefig('training_graph.pdf')
+# def plot_accuracy_graph(train_accuracy, test_accuracy):
+#     epochs = range(1, len(train_accuracy)+1)
+#     plt.plot(epochs, train_accuracy, label='Training data')
+#     plt.plot(epochs, test_accuracy, label='Validation data')
+#     plt.legend(loc='best')
+#     plt.ylim([0, 1])
+#     plt.xlabel('Epoch')
+#     plt.ylabel('Prediction Accuracy')
+#     plt.savefig('training_graph.pdf')
