@@ -14,7 +14,7 @@ crop_and_augment()
 
 train_mean, train_std, train_data, train_labels = load_dataset("data/train_cropped_smaller.csv", normalize=True)
 validation_data, validation_labels = load_dataset("data/valid_cropped_smaller.csv", normalize=(train_mean, train_std))
-test_data = load_dataset("data/test_cropped_smaller.csv", labeled=True, normalize=(train_mean, train_std))
+test_data, _ = load_dataset("data/test_cropped_smaller.csv", labeled=True, normalize=(train_mean, train_std))
 save_data_as_pickle_gz((train_data, train_labels, validation_data, validation_labels),
                       file_name="data/training_cropped_smaller_validation_normalized.pkl.gz")
 save_data_as_pickle_gz(test_data, file_name="data/test_normalized_cropped_smaller.pkl.gz")
@@ -36,6 +36,7 @@ n_epochs = 500
 batch_size = 128
 train_accuracy = []
 validation_accuracy = []
+# load_weights = ('best_weights.npy', 'best_biases.npy')
 
 # write to log file
 file_path = "log/training_output_{0}.txt".format(datetime.datetime.now())
@@ -50,8 +51,11 @@ write_output_to_log(f, "Batch size: {0}\n".format(batch_size))
 
 ni_cnt = 0
 
-train_mean, train_std, _, _ = load_dataset("data/train_cropped_smaller.csv", normalize=True)
-test_data, _ = load_dataset("data/test_cropped_smaller.csv", labeled=True, normalize=(train_mean, train_std))
+
+# if load_weights:
+#     best_w = np.load(load_weights[0])
+#     best_biases = np.load(load_weights[1])
+#     net.set_parameters(best_w, best_biases)
 
 
 # split to batches and feed to model
@@ -92,8 +96,7 @@ for e in range(n_epochs):
 
     train_epoch_accuracy = train_num_correct / len(train_data_samp)
     validation_epoch_accuracy = validation_num_correct / len(validation_data)
-    if validation_accuracy and validation_epoch_accuracy > max(validation_accuracy) \
-        and validation_epoch_accuracy > sw_threshold:
+    if validation_accuracy and validation_epoch_accuracy > max(validation_accuracy):
         write_output_to_log(f, "Best validation accuracy %.2f so far. Saving weights"
                             % validation_epoch_accuracy)
         np.save('best_weights', new_w)
@@ -119,6 +122,7 @@ f.close()
 
 
 # predict on test set and write to output file
+
 test_predictions = []
 for test_sample in test_data:
     prediction_index = net.predict_batch(test_sample.reshape(1, -1, 1))

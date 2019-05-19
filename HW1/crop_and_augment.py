@@ -10,7 +10,7 @@ def crop_and_augment():
     validation_data = validation.iloc[:, 1:].values
     validation_label = validation.iloc[:, 0].values
     test = pd.read_csv('data/test.csv', header = None)
-    test_data = test.loc[:, 1:].values
+    test_data = test.iloc[:, 1:].values
 
     cropped_train_mirrored = []
     for i in range(train_data.shape[0]):
