@@ -3,6 +3,7 @@ import gzip
 import pickle
 import numpy as np
 
+
 def crop_and_augment():
     train = pd.read_csv('data/train.csv', header = None)
     train_data = train.iloc[:, 1:].values

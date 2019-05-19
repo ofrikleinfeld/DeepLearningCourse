@@ -44,9 +44,10 @@ def load_dataset(data_file, labeled=True, normalize=False):
             # transform from 1 based index to 0 based index
             # then perform one hot encoding
             if labeled:
-                label_index = int(label) - 1
-                one_hot_label = vectorized_result(label_index)
-                labels.append(one_hot_label)
+                if label != '?':
+                    label_index = int(float(label)) - 1
+                    one_hot_label = vectorized_result(label_index)
+                    labels.append(one_hot_label)
 
             data_samples.append(data)
 
@@ -75,13 +76,6 @@ def load_training_validation_data(path):
         training_data, training_labels, validation_data, validation_labels = pickle.load(f)
 
     return training_data, training_labels, validation_data, validation_labels
-
-
-def load_test_date():
-    with gzip.open("data/test.pkl.gz", "rb") as f:
-        test_data = pickle.load(f)
-
-    return test_data
 
 
 def vectorized_result(j):
