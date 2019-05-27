@@ -15,3 +15,10 @@ data/
 
 # ignore log folder
 log/
+
+# ignore rllesson folder
+rllesson/
+
+# ignore csv and text files
+*.csv
+*.txt
