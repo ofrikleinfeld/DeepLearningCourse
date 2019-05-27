@@ -19,6 +19,10 @@ log/
 # ignore rllesson folder
 rllesson/
 
-# ignore csv and text files
+# ignore data files from various formats
 *.csv
 *.txt
+*.docx
+*.gz
+*.zip
+*.npy
