@@ -67,7 +67,6 @@ class BaseValueIterationThief(object):
 
             else:
                 # if there is no valid neighbor - algorithm failed
-                print(path)
                 return False
 
     def choose_next_state(self, neighbors_values):
@@ -124,35 +123,15 @@ class ProbabilisticGreedyPathThief(BaseValueIterationThief):
     def __init__(self, grid_object):
         super(ProbabilisticGreedyPathThief, self).__init__(grid_object)
 
-    def normalize_states_values(self):
-        state_values = list(self.v.values())
-        values_mean = np.mean(state_values)
-        value_std = np.std(state_values)
-
-        self.v = {s: (self.v[s] - values_mean) / value_std for s in self.v}
-
-    def compute_path(self, init_state):
-        self.normalize_states_values()
-        super(ProbabilisticGreedyPathThief, self).compute_path(init_state)
-
     def choose_next_state(self, neighbors_values):
-        values_sum = sum([np.exp(value) for n, value in neighbors_values])
-        values_distribution = [(n, np.exp(value) / values_sum) for n, value in neighbors_values]
-        # values_sum = sum([np.exp(value) if value >= 1e-10 else 0 for n, value in neighbors_values])
-        # values_distribution = [(n, np.exp(value) / values_sum) if value >= 1e-10 else (n, 0)
-        #                        for n, value in neighbors_values]
-        sorted_probabilities = sorted(values_distribution, key=lambda x: x[1], reverse=True)
-
+        sorted_values = sorted(neighbors_values, key=lambda x: x[1], reverse=True)
         probability = random.random()
-        next_state, next_state_prob = sorted_probabilities[0]
-        cumulative_probability = next_state_prob
-        for i in range(1, len(sorted_probabilities)):
 
-            if probability <= cumulative_probability:
-                return next_state
+        # choose best action 90% of times and second best option 10% of the times
+        if len(sorted_values) == 1 or probability <= 0.9:
+            next_state, _ = sorted_values[0]
 
-            else:
-                next_state, next_state_prob = sorted_probabilities[i]
-                cumulative_probability += next_state_prob
+        else:
+            next_state, _ = sorted_values[1]
 
         return next_state
