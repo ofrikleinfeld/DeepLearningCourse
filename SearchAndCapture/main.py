@@ -8,8 +8,8 @@ states = data_processing.load_grid("grid_file.csv")
 init_states = data_processing.load_states_info("init_cells.txt")
 goal_states = data_processing.load_states_info("goal_cells.txt")
 
-# grid = WeightRankRewardGrid(states, init_states, goal_states)
-grid = WeightRankGrid(states, init_states, goal_states )
+grid = WeightRankRewardGrid(states, init_states, goal_states)
+# grid = WeightRankGrid(states, init_states, goal_states )
 grid.compute_states_rewards()
 grid.normalize_rewards()
 

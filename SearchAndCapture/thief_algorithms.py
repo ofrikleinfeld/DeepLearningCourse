@@ -127,11 +127,12 @@ class ProbabilisticGreedyPathThief(BaseValueIterationThief):
         sorted_values = sorted(neighbors_values, key=lambda x: x[1], reverse=True)
         probability = random.random()
 
-        # choose best action 90% of times and second best option 10% of the times
+        # choose best action 90% of times and random neighbor option for the rest of the times
         if len(sorted_values) == 1 or probability <= 0.9:
             next_state, _ = sorted_values[0]
 
         else:
-            next_state, _ = sorted_values[1]
+            index = random.randint(0, len(sorted_values)-1)
+            next_state, _ = sorted_values[index]
 
         return next_state
