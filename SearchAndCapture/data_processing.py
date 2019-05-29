@@ -22,3 +22,9 @@ def load_states_info(file_name):
         states.remove("")
 
     return states
+
+
+def output_path_to_file(states_path):
+    with open("path.txt", "w") as f:
+        f.write(",".join(states_path))
+        f.write("\n")
