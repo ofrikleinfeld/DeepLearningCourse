@@ -1,3 +1,4 @@
+import random
 import numpy as np
 
 
@@ -20,6 +21,9 @@ class BaseGrid(object):
     def get_all_states_rewards(self):
         return self.states_rewards
 
+    def get_random_init_state(self):
+        return random.sample(self.init_states, 1)[0]
+
     def get_state_reward(self, state):
         return self.states_rewards.get(state, None)
 
@@ -31,6 +35,10 @@ class BaseGrid(object):
 
     def get_state_weight(self, state):
         return int(self.states_dict[state]["weight"])
+
+    def remove_random_goal_states(self, num_states_to_remove=5):
+        states_to_remove = set(random.sample(self.goal_states, num_states_to_remove))
+        self.goal_states = self.goal_states - states_to_remove
 
     def _set_reward_for_goal_states(self, goal_reward):
         self.states_rewards = {state: goal_reward for state in self.goal_states}
