@@ -33,7 +33,7 @@ def sigmoid_derivative(x):
     return sigmoid(x) * (1 - sigmoid(x))
 
 
-def conv2d(input_, weights, biases):
+def conv2d(input_, weights, biases, stride=1):
     """ Implements a 2-D convolution operation.
     Will perform using matrix multiplication operations
     Arguments:
@@ -47,21 +47,23 @@ def conv2d(input_, weights, biases):
 
     N, C, H, W = input_.shape
     D, _, h, w = weights.shape
+    w_out = (H - h) // stride + 1
+    h_out = (W - w) // stride + 1
 
-    k, i, j = get_im2col_shape(input_.shape, weights.shape, stride=1)
-    cols = input_[:, k, i, j]
-    cols = cols.transpose(1, 2, 0).reshape(h * w * C, -1)
-    print(cols.shape)
-    print("done")
+    input_cols = _im2col(input_, weights, stride)
+    weight_rows = weights.reshape(D, C * h * w)
+    biases = biases.reshape(D, 1)  # in order to enable broadcasting
+
+    conv_res = weight_rows @ input_cols + biases
+    conv_res_shaped = conv_res.reshape(N, D, h_out, w_out)
+
+    return conv_res_shaped
 
 
-def get_im2col_shape(input_shape, kernel_shape, stride=1):
-    N, C, H, W = input_shape
-    D, _, h, w = kernel_shape
+def _im2col(input_, weights, stride):
 
-    assert (H - h) % stride == 0
-    assert (W - w) % stride == 0
-
+    _, C, H, W = input_.shape
+    D, _, w, h = weights.shape
     w_out = (H - h) // stride + 1
     h_out = (W - w) // stride + 1
 
@@ -71,11 +73,12 @@ def get_im2col_shape(input_shape, kernel_shape, stride=1):
 
     j0 = np.tile(np.arange(w), h * C)
     j1 = stride * np.tile(np.arange(w_out), h_out)
+
     i = i0.reshape(-1, 1) + i1.reshape(1, -1)
     j = j0.reshape(-1, 1) + j1.reshape(1, -1)
-
     k = np.repeat(np.arange(C), h * w).reshape(-1, 1)
 
-    return k, i, j
+    input_cols = input_[:, k, i, j]
+    return input_cols
 
 
