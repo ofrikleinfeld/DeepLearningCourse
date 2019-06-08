@@ -138,6 +138,29 @@ class UtilsTests(unittest.TestCase):
         self.gradient_checker(sigmoid_function, np.array([0, 0, 0, 0]))  # 1-D test
         self.gradient_checker(sigmoid_function, np.array([[4, 5], [1, 1], [-5, 21]]))  # 2-D test
 
+    def test_conv2d_shape(self):
+        x = np.random.rand(4, 3, 227, 227)
+        w = np.random.rand(96, 3, 11, 11)
+        bias = np.random.rand(96)
+        res = util_functions.conv2d(x, w, bias, stride=4)
+        self.assertEqual(res.shape, (4, 96, 55, 55))
+
+    def test_conv2d_res_1(self):
+        # 1 sample, 1 color map, 5x5
+        x = np.array([[[[0, 0, 0, 0, 0], [0, 1, 2, 3, 0], [0, 4, 5, 6, 0], [0, 7, 8, 9, 0], [0, 0, 0, 0, 0]]]])
+
+        # 1 filter of size 3x3 (for 1 color map)
+        w = np.array([[[[1, 2, 1], [0, 0, 0], [-1, -2, -1]]]])
+
+        bias = np.zeros(1)  # 1 filter so 1 bias term
+
+        # result of dimension (1, 1, 3, 3)
+        expected_res = np.array([[[[-13., -20., -17.],
+                                [-18., -24., -18.],
+                                [13.,  20.,  17.]]]])
+
+        np.testing.assert_allclose(util_functions.conv2d(x, w, bias), expected_res, atol=0.0001)
+
 
 if __name__ == '__main__':
     unittest.main()
