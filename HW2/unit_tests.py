@@ -161,6 +161,46 @@ class UtilsTests(unittest.TestCase):
 
         np.testing.assert_allclose(util_functions.conv2d(x, w, bias), expected_res, atol=0.0001)
 
+    def test_linear_1(self):
+        x = np.array([[1, 2, 33, 15]])
+        w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
+        b = np.zeros(2)
+        expected_res = np.array([[2., 70.]])
+
+        np.testing.assert_allclose(util_functions.linear(x, w, b), expected_res, atol=0.0001)
+
+    def test_linear_2(self):
+        x = np.array([[1, 2, 33, 15], [1, 2, 33, 15]])
+        w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
+        b = np.zeros(2)
+        expected_res = np.array([[2., 70.], [2., 70.]])
+
+        np.testing.assert_allclose(util_functions.linear(x, w, b), expected_res, atol=0.0001)
+
+    def test_linear_3(self):
+        x = np.array([[1, 2, 0, -1], [1, 2, 33, 15]])
+        w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
+        b = np.array([-2., -1.])
+        expected_res = np.array([[0., 3.], [0., 69.]])
+
+        np.testing.assert_allclose(util_functions.linear(x, w, b), expected_res, atol=0.0001)
+
+    def test_linear_with_relu_1(self):
+        x = np.array([[1, 2, 33, 15], [1, 2, 33, 15]])
+        w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
+        b = np.zeros(2)
+        expected_res = np.array([[2., 70.], [2., 70.]])
+
+        np.testing.assert_allclose(util_functions.relu(util_functions.linear(x, w, b)), expected_res, atol=0.0001)
+
+    def test_linear_with_relu_2(self):
+        x = np.array([[1, 2, 0, -1], [1, 2, 33, 15]])
+        w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
+        b = np.array([-5., -1.])
+        expected_res = np.array([[0., 3.], [0., 69.]])
+
+        np.testing.assert_allclose(util_functions.relu(util_functions.linear(x, w, b)), expected_res, atol=0.0001)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -82,3 +82,16 @@ def _im2col(input_, weights, stride):
     return input_cols
 
 
+def linear(input_, weights, biases):
+    """ Implements a fully connected liner transformation operation.
+    Will perform using matrix multiplication operations
+    Arguments:
+    inputs -- an input signal with the dimensions of N X d_l_minus_1
+         N is the batch size, d_l_minus_1 is number of neurons in the previous layer
+    weights -- the weights to perform transformation with. has a dimension of d_l x d_l_minus_1
+    biases - bias terms. always 1 dimension array of d_l neurons
+    """
+    d_l, d_l_minus_1 = weights.shape
+    weights_transposed = weights.T
+    biases_shaped = biases.reshape(1, d_l)  # in order to enable broadcasting
+    return input_ @ weights_transposed + biases_shaped
