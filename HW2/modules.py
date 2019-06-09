@@ -61,7 +61,7 @@ class Linear(NetworkModuleWithParams):
         return self.activation_layer(self.z)
 
     def backward(self, next_layer_weights, next_layer_grad):
-        return next_layer_weights.T @ next_layer_grad * self.activation_layer.backward(self.z)
+        return next_layer_grad @ next_layer_weights * self.activation_layer.backward(self.z)
 
 
 class Relu(NetworkModule):

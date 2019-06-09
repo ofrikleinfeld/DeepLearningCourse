@@ -40,6 +40,40 @@ class UtilsTests(unittest.TestCase):
 
             it.iternext()  # Step to next dimension
 
+    def gradient_checker_batch_input(self, f, w):
+        """ Gradient check for a function f.
+        Arguments:
+        f -- a function that takes a single numpy array and outputs the
+             the loss and the the gradients with regards to this numpy array
+        w -- the weights (numpy array) to check the gradient for
+        """
+
+        loss, grad = f(w)  # Evaluate function value at with some weights vector
+        h = 1e-4  # a small value, epsilon
+
+        # Iterate over all indexes ix in x to check the gradient.
+        batch_size = w.shape[0]
+        for i in range(batch_size):
+            sample_input = w[i]
+            sample_grad = grad[i]
+            it = np.nditer(sample_input, flags=['multi_index'], op_flags=['readwrite'])
+            while not it.finished:
+                iw = it.multi_index
+
+                # Modifying w[iw] with h defined above to compute numerical gradients
+                eps = np.zeros(sample_input.shape)
+                eps[iw] = h
+                loss_plus_eps = f(sample_input.reshape(1, -1) + eps)[0]
+                loss_minus_eps = f(sample_input.reshape(1, -1) - eps)[0]
+
+                numeric_gradient = (loss_plus_eps - loss_minus_eps) / (2 * h)
+
+                # Compare gradients
+                gradients_diff = abs(numeric_gradient - sample_grad[iw]) / max(1, abs(numeric_gradient), abs(sample_grad[iw]))
+                self.assertLessEqual(gradients_diff, 1e-5)
+
+                it.iternext()  # Step to next dimension
+
     def test_softmax_1(self):
         input = np.array([[2, 3, 5, 1, 7], [4, 3, 0, 5, 5], [-1, 2, 0, -3, -4]])
         output = np.array([[0.00579425, 0.01575041, 0.11638064, 0.00213159, 0.85994311],
@@ -291,6 +325,19 @@ class UtilsTests(unittest.TestCase):
         self.gradient_checker(softmax_layer, np.array([1, 2, -1, -2]))  # 1-D test
         self.gradient_checker(softmax_layer, np.array([-1, 33, -1, -2]))  # another 1-D test
 
+    def test_gradient_softmax_layer_batch(self):
+
+        def softmax_layer(x):
+            softmax = nn.Softmax()
+            num_classes = x.shape
+            label = np.zeros(num_classes)
+            label[:, 0] = 1
+            loss = -np.log(np.sum(softmax(x) * label, axis=1))
+            grad = softmax.backward(x, label)
+            return loss, grad
+
+        self.gradient_checker_batch_input(softmax_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
+
     def test_gradient_relu_layer(self):
 
         def relu_layer(x):
@@ -300,7 +347,16 @@ class UtilsTests(unittest.TestCase):
             return loss, grad
 
         self.gradient_checker(relu_layer, np.array([1, 2, -1, -2]))  # 1-D test
-        self.gradient_checker(relu_layer, np.array([[-1, 1, -1, -2], [-1, 1, -1, -2], [-1, 1, -1, -2]]))  # batch size test
+
+    def test_gradient_relu_layer_batch(self):
+
+        def relu_layer(x):
+            relu = nn.Relu()
+            loss = np.sum(relu(x), axis=1)
+            grad = relu.backward(x)
+            return loss, grad
+
+        self.gradient_checker_batch_input(relu_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
 
     def test_gradient_sigmoid_layer_1(self):
 
@@ -313,7 +369,7 @@ class UtilsTests(unittest.TestCase):
         self.gradient_checker(sigmoid_layer, np.array([1, 2, -1, -2]))  # 1-D test
         self.gradient_checker(sigmoid_layer, np.array([-1, 1, -1, -2]))  # another 1-D test
 
-    def test_gradient_sigmoid_layer_2(self):
+    def test_gradient_sigmoid_layer_batch(self):
 
         def sigmoid_layer(x):
             sigmoid = nn.Sigmoid()
@@ -321,19 +377,23 @@ class UtilsTests(unittest.TestCase):
             grad = sigmoid.backward(x)
             return loss, grad
 
-        self.gradient_checker(sigmoid_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
+        self.gradient_checker_batch_input(sigmoid_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
 
     def test_gradient_linear_layer(self):
 
         def linear_layer(x):
+            # the derivative check in the gradient checker relates to the input of the function
+            # hence, the input should be out z - since the backward step computes @loss / @z
+            batch_size = x.shape[0]
             linear = nn.Linear(in_dimension=4, out_dimension=2, activation_layer=nn.Relu())
             next_layer_weights = np.random.rand(3, 2)
-            next_layer_grad = np.random.rand(3)
-            loss = np.sum(linear(x))
+            next_layer_grad = np.random.rand(batch_size, 3)
+            linear.z = x
+            loss = np.sum(next_layer_grad, axis=1)  # loss for each sample in batch
             grad = linear.backward(next_layer_weights, next_layer_grad)
             return loss, grad
 
-        self.gradient_checker(linear_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))
+        self.gradient_checker(linear_layer, np.array([[1, 2], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))  # batch size test
 
 
 if __name__ == '__main__':
