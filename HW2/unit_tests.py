@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 import HW2.util_functions as util_functions
+import HW2.modules as nn
 
 
 class UtilsTests(unittest.TestCase):
@@ -200,6 +201,51 @@ class UtilsTests(unittest.TestCase):
         expected_res = np.array([[0., 3.], [0., 69.]])
 
         np.testing.assert_allclose(util_functions.relu(util_functions.linear(x, w, b)), expected_res, atol=0.0001)
+
+    def test_conv2d_module_1(self):
+        # 1 sample, 1 color map, 5x5
+        x = np.array([[[[0, 0, 0, 0, 0], [0, 1, 2, 3, 0], [0, 4, 5, 6, 0], [0, 7, 8, 9, 0], [0, 0, 0, 0, 0]]]])
+
+        # 1 filter of size 3x3 (for 1 color map)
+        w = np.array([[[[1, 2, 1], [0, 0, 0], [-1, -2, -1]]]])
+
+        bias = np.zeros(1)  # 1 filter so 1 bias term
+
+        # result of dimension (1, 1, 3, 3)
+        expected_res = np.array([[[[-13., -20., -17.],
+                                [-18., -24., -18.],
+                                [13.,  20.,  17.]]]])
+
+        conv_layer = nn.Conv2d(1, 1, kernel_size=3, stride=1)
+        conv_layer.set_weights(w)
+        conv_layer.set_biases(bias)
+
+        np.testing.assert_allclose(conv_layer(x), expected_res, atol=0.0001)
+
+    def test_linear_module_1(self):
+        x = np.array([[1, 2, 33, 15]])
+        w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
+        b = np.zeros(2)
+        expected_res = np.array([[2., 70.]])
+
+        linear_layer = nn.Linear(4, 2)
+        linear_layer.set_weights(w)
+        linear_layer.set_biases(b)
+
+        np.testing.assert_allclose(linear_layer(x), expected_res, atol=0.0001)
+
+    def test_liner_module_relu_1(self):
+        x = np.array([[1, 2, 0, -1], [1, 2, 33, 15]])
+        w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
+        b = np.array([-5., -1.])
+        expected_res = np.array([[0., 3.], [0., 69.]])
+
+        linear_layer = nn.Linear(4, 2)
+        linear_layer.set_weights(w)
+        linear_layer.set_biases(b)
+        relu = nn.Relu()
+
+        np.testing.assert_allclose(relu(linear_layer(x)), expected_res, atol=0.0001)
 
 
 if __name__ == '__main__':
