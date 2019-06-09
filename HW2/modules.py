@@ -45,9 +45,11 @@ class Conv2d(NetworkModuleWithParams):
 
 class Linear(NetworkModuleWithParams):
 
-    def __init__(self, in_dimension, out_dimension):
+    def __init__(self, in_dimension, out_dimension, activation_layer):
         super(Linear, self).__init__()
         self.init_weights(in_dimension, out_dimension)
+        self.activation_layer = activation_layer
+        self.z = None
 
     def init_weights(self, in_dimension, out_dimension):
         # naive initialization from uniform distribution
@@ -55,7 +57,11 @@ class Linear(NetworkModuleWithParams):
         self.biases = np.random.rand(out_dimension)
 
     def __call__(self, input_):
-        return util_functions.linear(input_, self.weights, self.biases)
+        self.z = util_functions.linear(input_, self.weights, self.biases)
+        return self.activation_layer(self.z)
+
+    def backward(self, next_layer_weights, next_layer_grad):
+        return next_layer_weights.T @ next_layer_grad * self.activation_layer.backward(self.z)
 
 
 class Relu(NetworkModule):
@@ -69,11 +75,16 @@ class Relu(NetworkModule):
 
 class Softmax(NetworkModule):
 
+    def __init__(self):
+        super(Softmax, self).__init__()
+        self.dist = None
+
     def __call__(self, input_):
-        return util_functions.softmax(input_)
+        self.dist = util_functions.softmax(input_)
+        return self.dist
 
     def backward(self, input_, label):
-        return self(input_) - label
+        return self.dist - label
 
 
 class Sigmoid(NetworkModule):

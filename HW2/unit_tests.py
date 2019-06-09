@@ -6,6 +6,10 @@ import HW2.modules as nn
 
 class UtilsTests(unittest.TestCase):
 
+    @staticmethod
+    def identity(x):
+        return x
+
     def gradient_checker(self, f, w):
         """ Gradient check for a function f.
         Arguments:
@@ -228,7 +232,7 @@ class UtilsTests(unittest.TestCase):
         b = np.zeros(2)
         expected_res = np.array([[2., 70.]])
 
-        linear_layer = nn.Linear(4, 2)
+        linear_layer = nn.Linear(4, 2, activation_layer=UtilsTests.identity)
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
 
@@ -240,7 +244,7 @@ class UtilsTests(unittest.TestCase):
         b = np.array([-5., -1.])
         expected_res = np.array([[0., 3.], [0., 69.]])
 
-        linear_layer = nn.Linear(4, 2)
+        linear_layer = nn.Linear(4, 2, activation_layer=UtilsTests.identity)
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
         relu = nn.Relu()
@@ -253,7 +257,7 @@ class UtilsTests(unittest.TestCase):
         b = np.array([-5., -1.])
         expected_res = np.array([[0., 3.], [0., 1.]])
 
-        linear_layer = nn.Linear(4, 2)
+        linear_layer = nn.Linear(4, 2, activation_layer=UtilsTests.identity)
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
         relu = nn.Relu()
@@ -266,7 +270,7 @@ class UtilsTests(unittest.TestCase):
         b = np.zeros(2)
         expected_res = np.array([[.119202, .88079], [.5, .5]])
 
-        linear_layer = nn.Linear(4, 2)
+        linear_layer = nn.Linear(4, 2, activation_layer=UtilsTests.identity)
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
         softmax = nn.Softmax()
@@ -296,9 +300,9 @@ class UtilsTests(unittest.TestCase):
             return loss, grad
 
         self.gradient_checker(relu_layer, np.array([1, 2, -1, -2]))  # 1-D test
-        self.gradient_checker(relu_layer, np.array([-1, 1, -1, -2]))  # another 1-D test
+        self.gradient_checker(relu_layer, np.array([[-1, 1, -1, -2], [-1, 1, -1, -2], [-1, 1, -1, -2]]))  # batch size test
 
-    def test_gradient_sigmoid_layer(self):
+    def test_gradient_sigmoid_layer_1(self):
 
         def sigmoid_layer(x):
             sigmoid = nn.Sigmoid()
@@ -308,6 +312,28 @@ class UtilsTests(unittest.TestCase):
 
         self.gradient_checker(sigmoid_layer, np.array([1, 2, -1, -2]))  # 1-D test
         self.gradient_checker(sigmoid_layer, np.array([-1, 1, -1, -2]))  # another 1-D test
+
+    def test_gradient_sigmoid_layer_2(self):
+
+        def sigmoid_layer(x):
+            sigmoid = nn.Sigmoid()
+            loss = np.sum(sigmoid(x))
+            grad = sigmoid.backward(x)
+            return loss, grad
+
+        self.gradient_checker(sigmoid_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
+
+    def test_gradient_linear_layer(self):
+
+        def linear_layer(x):
+            linear = nn.Linear(in_dimension=4, out_dimension=2, activation_layer=nn.Relu())
+            next_layer_weights = np.random.rand(3, 2)
+            next_layer_grad = np.random.rand(3)
+            loss = np.sum(linear(x))
+            grad = linear.backward(next_layer_weights, next_layer_grad)
+            return loss, grad
+
+        self.gradient_checker(linear_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))
 
 
 if __name__ == '__main__':
