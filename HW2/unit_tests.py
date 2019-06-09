@@ -247,6 +247,68 @@ class UtilsTests(unittest.TestCase):
 
         np.testing.assert_allclose(relu(linear_layer(x)), expected_res, atol=0.0001)
 
+    def test_liner_module_relu_2(self):
+        x = np.array([[1, 2, 0, -1], [1, 2, -1, -2]])
+        w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
+        b = np.array([-5., -1.])
+        expected_res = np.array([[0., 3.], [0., 1.]])
+
+        linear_layer = nn.Linear(4, 2)
+        linear_layer.set_weights(w)
+        linear_layer.set_biases(b)
+        relu = nn.Relu()
+
+        np.testing.assert_allclose(relu(linear_layer(x)), expected_res, atol=0.0001)
+
+    def test_liner_module_softmax_1(self):
+        x = np.array([[1, 2, 0, -1], [1, 2, -1, -2]])
+        w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
+        b = np.zeros(2)
+        expected_res = np.array([[.119202, .88079], [.5, .5]])
+
+        linear_layer = nn.Linear(4, 2)
+        linear_layer.set_weights(w)
+        linear_layer.set_biases(b)
+        softmax = nn.Softmax()
+
+        np.testing.assert_allclose(softmax(linear_layer(x)), expected_res, atol=0.0001)
+
+    def test_gradient_softmax_layer(self):
+
+        def softmax_layer(x):
+            softmax = nn.Softmax()
+            num_classes = x.shape
+            label = np.zeros(num_classes)
+            label[0] = 1
+            loss = -np.log(softmax(x) @ label.T)
+            grad = softmax.backward(x, label)
+            return loss, grad
+
+        self.gradient_checker(softmax_layer, np.array([1, 2, -1, -2]))  # 1-D test
+        self.gradient_checker(softmax_layer, np.array([-1, 33, -1, -2]))  # another 1-D test
+
+    def test_gradient_relu_layer(self):
+
+        def relu_layer(x):
+            relu = nn.Relu()
+            loss = np.sum(relu(x))
+            grad = relu.backward(x)
+            return loss, grad
+
+        self.gradient_checker(relu_layer, np.array([1, 2, -1, -2]))  # 1-D test
+        self.gradient_checker(relu_layer, np.array([-1, 1, -1, -2]))  # another 1-D test
+
+    def test_gradient_sigmoid_layer(self):
+
+        def sigmoid_layer(x):
+            sigmoid = nn.Sigmoid()
+            loss = np.sum(sigmoid(x))
+            grad = sigmoid.backward(x)
+            return loss, grad
+
+        self.gradient_checker(sigmoid_layer, np.array([1, 2, -1, -2]))  # 1-D test
+        self.gradient_checker(sigmoid_layer, np.array([-1, 1, -1, -2]))  # another 1-D test
+
 
 if __name__ == '__main__':
     unittest.main()

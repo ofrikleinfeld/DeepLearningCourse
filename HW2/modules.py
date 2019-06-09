@@ -17,6 +17,9 @@ class NetworkModuleWithParams(NetworkModule):
         self.weights = None
         self.biases = None
 
+    def init_weights(self, *args):
+        raise NotImplementedError("Sub class must implement an initialization method for weights")
+
     def set_weights(self, new_weights):
         self.weights = new_weights
 
@@ -28,9 +31,13 @@ class Conv2d(NetworkModuleWithParams):
 
     def __init__(self, in_channels, out_channels, kernel_size, stride=1):
         super(Conv2d, self).__init__()
+        self.init_weights(in_channels, out_channels, kernel_size)
+        self.stride = stride
+
+    def init_weights(self, in_channels, out_channels, kernel_size):
+        # naive initialization from uniform distribution
         self.weights = np.random.rand(out_channels, in_channels, kernel_size, kernel_size)
         self.biases = np.random.rand(out_channels)
-        self.stride = stride
 
     def __call__(self, input_):
         return util_functions.conv2d(input_, self.weights, self.biases, self.stride)
@@ -40,6 +47,10 @@ class Linear(NetworkModuleWithParams):
 
     def __init__(self, in_dimension, out_dimension):
         super(Linear, self).__init__()
+        self.init_weights(in_dimension, out_dimension)
+
+    def init_weights(self, in_dimension, out_dimension):
+        # naive initialization from uniform distribution
         self.weights = np.random.rand(out_dimension, in_dimension)
         self.biases = np.random.rand(out_dimension)
 
@@ -52,14 +63,23 @@ class Relu(NetworkModule):
     def __call__(self, input_):
         return util_functions.relu(input_)
 
+    def backward(self, input_):
+        return util_functions.relu_derivative(input_)
+
 
 class Softmax(NetworkModule):
 
     def __call__(self, input_):
         return util_functions.softmax(input_)
 
+    def backward(self, input_, label):
+        return self(input_) - label
+
 
 class Sigmoid(NetworkModule):
 
     def __call__(self, input_):
         return util_functions.sigmoid(input_)
+
+    def backward(self, input_):
+        return util_functions.sigmoid_derivative(input_)
