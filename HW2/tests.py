@@ -182,7 +182,7 @@ class UtilsTests(unittest.TestCase):
         x = np.random.rand(4, 3, 227, 227)
         w = np.random.rand(96, 3, 11, 11)
         bias = np.random.rand(96)
-        res = util_functions.conv2d(x, w, bias, stride=4)
+        res, _ = util_functions.conv2d(x, w, bias, stride=4)
         self.assertEqual(res.shape, (4, 96, 55, 55))
 
     def test_conv2d_res_1(self):
@@ -199,7 +199,9 @@ class UtilsTests(unittest.TestCase):
                                 [-18., -24., -18.],
                                 [13.,  20.,  17.]]]])
 
-        np.testing.assert_allclose(util_functions.conv2d(x, w, bias), expected_res, atol=0.0001)
+        z, _ = util_functions.conv2d(x, w, bias)
+
+        np.testing.assert_allclose(z, expected_res, atol=0.0001)
 
     def test_linear_1(self):
         x = np.array([[1, 2, 33, 15]])
@@ -255,11 +257,14 @@ class UtilsTests(unittest.TestCase):
                                 [-18., -24., -18.],
                                 [13.,  20.,  17.]]]])
 
-        conv_layer = nn.Conv2d(1, 1, kernel_size=3, stride=1)
+        conv_layer = nn.Conv2d(1, 1, kernel_size=3, stride=1, activation_layer=UtilsTests.identity)
         conv_layer.set_weights(w)
         conv_layer.set_biases(bias)
 
-        np.testing.assert_allclose(conv_layer(x), expected_res, atol=0.0001)
+        conv_layer(x)
+        z = conv_layer.z
+
+        np.testing.assert_allclose(z, expected_res, atol=0.0001)
 
     def test_linear_module_1(self):
         x = np.array([[1, 2, 33, 15]])
@@ -271,7 +276,7 @@ class UtilsTests(unittest.TestCase):
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
 
-        _, a = linear_layer(x)
+        a = linear_layer(x)
 
         np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
@@ -285,7 +290,7 @@ class UtilsTests(unittest.TestCase):
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
 
-        _, a = linear_layer(x)
+        a = linear_layer(x)
 
         np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
@@ -299,7 +304,7 @@ class UtilsTests(unittest.TestCase):
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
 
-        _, a = linear_layer(x)
+        a = linear_layer(x)
 
         np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
@@ -313,7 +318,7 @@ class UtilsTests(unittest.TestCase):
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
 
-        _, a = linear_layer(x)
+        a = linear_layer(x)
 
         np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
@@ -324,9 +329,9 @@ class UtilsTests(unittest.TestCase):
             num_classes = x.shape
             label = np.zeros(num_classes)
             label[:, 0] = 1
-            distribution = softmax(x)
-            loss = -np.log(np.sum(distribution * label, axis=1))
-            grad = softmax.backward(distribution, label)
+            dist = softmax(x)
+            loss = -np.log(np.sum(dist * label, axis=1))
+            grad = softmax.backward(label)
             return loss, grad
 
         self.gradient_checker_batch_input(softmax_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
@@ -336,7 +341,7 @@ class UtilsTests(unittest.TestCase):
         def relu_layer(x):
             relu = nn.Relu()
             loss = np.sum(relu(x))
-            grad = relu.backward(x)
+            grad = relu.backward()
             return loss, grad
 
         self.gradient_checker(relu_layer, np.array([1, 2, -1, -2]))  # 1-D test
@@ -346,7 +351,7 @@ class UtilsTests(unittest.TestCase):
         def relu_layer(x):
             relu = nn.Relu()
             loss = np.sum(relu(x), axis=1)
-            grad = relu.backward(x)
+            grad = relu.backward()
             return loss, grad
 
         self.gradient_checker_batch_input(relu_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
@@ -356,7 +361,7 @@ class UtilsTests(unittest.TestCase):
         def sigmoid_layer(x):
             sigmoid = nn.Sigmoid()
             loss = np.sum(sigmoid(x))
-            grad = sigmoid.backward(x)
+            grad = sigmoid.backward()
             return loss, grad
 
         self.gradient_checker(sigmoid_layer, np.array([1, 2, -1, -2]))  # 1-D test
@@ -367,7 +372,7 @@ class UtilsTests(unittest.TestCase):
         def sigmoid_layer(x):
             sigmoid = nn.Sigmoid()
             loss = np.sum(sigmoid(x))
-            grad = sigmoid.backward(x)
+            grad = sigmoid.backward()
             return loss, grad
 
         self.gradient_checker_batch_input(sigmoid_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
@@ -396,7 +401,7 @@ class UtilsTests(unittest.TestCase):
             a_L = liner_softmax(a_L_mins_1)  # distribution vector
             labels = np.zeros(a_L.shape)
             labels[:, 1] = 1
-            layer_L_grad, loss = liner_softmax.backward(a_L, labels)
+            layer_L_grad, loss = liner_softmax.backward(labels)
             grad = layer_L_grad @ liner_softmax.get_weights() * util_functions.relu_derivative(z)
             return loss, grad
 
@@ -411,8 +416,11 @@ class UtilsTests(unittest.TestCase):
             """
 
             # simulate end of classification
-            linear_previous = nn.Linear(in_dimension=3, out_dimension=2, activation_layer=nn.Relu())
-            a_L_mins_1 = util_functions.relu(z)
+            relu = nn.Relu()
+            a_L_mins_1 = relu(z)
+
+            linear_previous = nn.Linear(in_dimension=3, out_dimension=2, activation_layer=relu)
+            linear_previous.a_minus_1 = z
 
             liner_softmax = nn.LinearWithSoftmax(in_dimension=2, out_dimension=5)
             liner_softmax.set_weights(np.array([
@@ -427,12 +435,38 @@ class UtilsTests(unittest.TestCase):
             a_L = liner_softmax(a_L_mins_1)  # distribution vector
             labels = np.zeros(a_L.shape)
             labels[:, 1] = 1
-            layer_L_grad, loss = liner_softmax.backward(a_L, labels)
+            layer_L_grad, loss = liner_softmax.backward(labels)
 
-            grad = linear_previous.backward(z, liner_softmax.get_weights(), layer_L_grad)
+            grad = linear_previous.backward(liner_softmax.get_weights(), layer_L_grad)
             return loss, grad
 
         self.gradient_checker_batch_input(linear_layer, np.array([[1, 3], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))  # batch size test
+
+    def test_conv2d_res_shape_padding(self):
+        # 1 sample, 1 color map, 10x10
+        x = np.array([[[
+            [0, 0, 0, 0, 0, -1, 2, 1, -1, 0],
+            [0, 0, 0, 0, 0, -1, 2, 1, -1, 0],
+            [0, 1, 2, 3, 0, -1, 2, -1, -2, 1],
+            [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
+            [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
+            [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
+            [0, 7, 8, 9, 0, 1, 2, -1, 0, 1],
+            [0, 7, 8, 9, 0, 1, 2, -1, 0, 1],
+            [0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
+        ]]])
+
+        # 1 filter of size 3x3 (for 1 color map)
+        w = np.array([[[[1, 2, 1], [0, 0, 0], [-1, -2, -1]]]])
+
+        bias = np.zeros(1)  # 1 filter so 1 bias term
+
+        # result of dimension (1, 1, 10, 10)
+        res, _ = util_functions.conv2d(x, w, bias, stride=1, padding=1)
+        expected_shape = np.array((1, 1, 10, 10))
+
+        np.testing.assert_allclose(res.shape, expected_shape, atol=0.0001)
 
 
 if __name__ == '__main__':
