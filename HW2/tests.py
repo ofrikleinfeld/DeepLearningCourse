@@ -372,7 +372,7 @@ class UtilsTests(unittest.TestCase):
 
         self.gradient_checker_batch_input(sigmoid_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
 
-    def test_gradient_linear_layer_batch(self):
+    def test_gradient_linear_layer_batch_1(self):
 
         def linear_layer(z):
             """
@@ -400,7 +400,39 @@ class UtilsTests(unittest.TestCase):
             grad = layer_L_grad @ liner_softmax.get_weights() * util_functions.relu_derivative(z)
             return loss, grad
 
-        self.gradient_checker_batch_input(linear_layer, np.array([[1, 2], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))  # batch size test
+        self.gradient_checker_batch_input(linear_layer, np.array([[22, 3], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))  # batch size test
+
+    def test_gradient_linear_layer_batch_2(self):
+
+        def linear_layer(z):
+            """
+            the derivative check in the gradient checker relates to the input of the function
+            hence, the input should be z - since the backward step computes @loss / @z
+            """
+
+            # simulate end of classification
+            linear_previous = nn.Linear(in_dimension=3, out_dimension=2, activation_layer=nn.Relu())
+            a_L_mins_1 = util_functions.relu(z)
+
+            liner_softmax = nn.LinearWithSoftmax(in_dimension=2, out_dimension=5)
+            liner_softmax.set_weights(np.array([
+                [0, 1],
+                [0, 2],
+                [0, 2],
+                [0, 2],
+                [0, 1],
+
+            ]))
+            liner_softmax.set_biases(np.array([0, 0, 0, 0, 0]))
+            a_L = liner_softmax(a_L_mins_1)  # distribution vector
+            labels = np.zeros(a_L.shape)
+            labels[:, 1] = 1
+            layer_L_grad, loss = liner_softmax.backward(a_L, labels)
+
+            grad = linear_previous.backward(z, liner_softmax.get_weights(), layer_L_grad)
+            return loss, grad
+
+        self.gradient_checker_batch_input(linear_layer, np.array([[1, 3], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))  # batch size test
 
 
 if __name__ == '__main__':
