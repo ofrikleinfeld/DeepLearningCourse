@@ -20,6 +20,12 @@ class NetworkModuleWithParams(NetworkModule):
     def init_weights(self, *args):
         raise NotImplementedError("Sub class must implement an initialization method for weights")
 
+    def get_weights(self):
+        return self.weights
+
+    def get_biases(self):
+        return self.biases
+
     def set_weights(self, new_weights):
         self.weights = new_weights
 
@@ -49,7 +55,6 @@ class Linear(NetworkModuleWithParams):
         super(Linear, self).__init__()
         self.init_weights(in_dimension, out_dimension)
         self.activation_layer = activation_layer
-        self.z = None
 
     def init_weights(self, in_dimension, out_dimension):
         # naive initialization from uniform distribution
@@ -57,11 +62,32 @@ class Linear(NetworkModuleWithParams):
         self.biases = np.random.rand(out_dimension)
 
     def __call__(self, input_):
-        self.z = util_functions.linear(input_, self.weights, self.biases)
-        return self.activation_layer(self.z)
+        z = util_functions.linear(input_, self.weights, self.biases)
+        return z, self.activation_layer(z)
 
-    def backward(self, next_layer_weights, next_layer_grad):
-        return next_layer_grad @ next_layer_weights * self.activation_layer.backward(self.z)
+    def backward(self, current_layer_z, next_layer_weights, next_layer_grad):
+        return next_layer_grad @ next_layer_weights * self.activation_layer.backward(current_layer_z)
+
+
+class LinearWithSoftmax(NetworkModuleWithParams):
+
+    def __init__(self, in_dimension, out_dimension):
+        super(LinearWithSoftmax, self).__init__()
+        self.init_weights(in_dimension, out_dimension)
+
+    def init_weights(self, in_dimension, out_dimension):
+        # naive initialization from uniform distribution
+        self.weights = np.random.rand(out_dimension, in_dimension)
+        self.biases = np.random.rand(out_dimension)
+
+    def __call__(self, input_):
+        z = util_functions.linear(input_, self.weights, self.biases)
+        return util_functions.softmax(z)
+
+    def backward(self, distribution, labels):
+        loss = -np.log(np.sum(distribution * labels, axis=1))
+        grad = distribution - labels
+        return grad, loss
 
 
 class Relu(NetworkModule):
@@ -77,14 +103,12 @@ class Softmax(NetworkModule):
 
     def __init__(self):
         super(Softmax, self).__init__()
-        self.dist = None
 
     def __call__(self, input_):
-        self.dist = util_functions.softmax(input_)
-        return self.dist
+        return util_functions.softmax(input_)
 
-    def backward(self, input_, label):
-        return self.dist - label
+    def backward(self, dist, label):
+        return dist - label
 
 
 class Sigmoid(NetworkModule):

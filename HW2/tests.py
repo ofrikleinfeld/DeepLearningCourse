@@ -17,7 +17,6 @@ class UtilsTests(unittest.TestCase):
              the loss and the the gradients with regards to this numpy array
         w -- the weights (numpy array) to check the gradient for
         """
-
         loss, grad = f(w)  # Evaluate function value at with some weights vector
         h = 1e-4  # a small value, epsilon
 
@@ -29,6 +28,7 @@ class UtilsTests(unittest.TestCase):
             # Modifying w[iw] with h defined above to compute numerical gradients
             eps = np.zeros(w.shape)
             eps[iw] = h
+
             loss_plus_eps = f(w + eps)[0]
             loss_minus_eps = f(w - eps)[0]
 
@@ -63,6 +63,7 @@ class UtilsTests(unittest.TestCase):
                 # Modifying w[iw] with h defined above to compute numerical gradients
                 eps = np.zeros(sample_input.shape)
                 eps[iw] = h
+
                 loss_plus_eps = f(sample_input.reshape(1, -1) + eps)[0]
                 loss_minus_eps = f(sample_input.reshape(1, -1) - eps)[0]
 
@@ -270,7 +271,9 @@ class UtilsTests(unittest.TestCase):
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
 
-        np.testing.assert_allclose(linear_layer(x), expected_res, atol=0.0001)
+        _, a = linear_layer(x)
+
+        np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
     def test_liner_module_relu_1(self):
         x = np.array([[1, 2, 0, -1], [1, 2, 33, 15]])
@@ -278,12 +281,13 @@ class UtilsTests(unittest.TestCase):
         b = np.array([-5., -1.])
         expected_res = np.array([[0., 3.], [0., 69.]])
 
-        linear_layer = nn.Linear(4, 2, activation_layer=UtilsTests.identity)
+        linear_layer = nn.Linear(4, 2, activation_layer=nn.Relu())
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
-        relu = nn.Relu()
 
-        np.testing.assert_allclose(relu(linear_layer(x)), expected_res, atol=0.0001)
+        _, a = linear_layer(x)
+
+        np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
     def test_liner_module_relu_2(self):
         x = np.array([[1, 2, 0, -1], [1, 2, -1, -2]])
@@ -291,12 +295,13 @@ class UtilsTests(unittest.TestCase):
         b = np.array([-5., -1.])
         expected_res = np.array([[0., 3.], [0., 1.]])
 
-        linear_layer = nn.Linear(4, 2, activation_layer=UtilsTests.identity)
+        linear_layer = nn.Linear(4, 2, activation_layer=nn.Relu())
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
-        relu = nn.Relu()
 
-        np.testing.assert_allclose(relu(linear_layer(x)), expected_res, atol=0.0001)
+        _, a = linear_layer(x)
+
+        np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
     def test_liner_module_softmax_1(self):
         x = np.array([[1, 2, 0, -1], [1, 2, -1, -2]])
@@ -304,26 +309,13 @@ class UtilsTests(unittest.TestCase):
         b = np.zeros(2)
         expected_res = np.array([[.119202, .88079], [.5, .5]])
 
-        linear_layer = nn.Linear(4, 2, activation_layer=UtilsTests.identity)
+        linear_layer = nn.Linear(4, 2, activation_layer=nn.Softmax())
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
-        softmax = nn.Softmax()
 
-        np.testing.assert_allclose(softmax(linear_layer(x)), expected_res, atol=0.0001)
+        _, a = linear_layer(x)
 
-    def test_gradient_softmax_layer(self):
-
-        def softmax_layer(x):
-            softmax = nn.Softmax()
-            num_classes = x.shape
-            label = np.zeros(num_classes)
-            label[0] = 1
-            loss = -np.log(softmax(x) @ label.T)
-            grad = softmax.backward(x, label)
-            return loss, grad
-
-        self.gradient_checker(softmax_layer, np.array([1, 2, -1, -2]))  # 1-D test
-        self.gradient_checker(softmax_layer, np.array([-1, 33, -1, -2]))  # another 1-D test
+        np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
     def test_gradient_softmax_layer_batch(self):
 
@@ -332,8 +324,9 @@ class UtilsTests(unittest.TestCase):
             num_classes = x.shape
             label = np.zeros(num_classes)
             label[:, 0] = 1
-            loss = -np.log(np.sum(softmax(x) * label, axis=1))
-            grad = softmax.backward(x, label)
+            distribution = softmax(x)
+            loss = -np.log(np.sum(distribution * label, axis=1))
+            grad = softmax.backward(distribution, label)
             return loss, grad
 
         self.gradient_checker_batch_input(softmax_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
@@ -379,21 +372,35 @@ class UtilsTests(unittest.TestCase):
 
         self.gradient_checker_batch_input(sigmoid_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
 
-    def test_gradient_linear_layer(self):
+    def test_gradient_linear_layer_batch(self):
 
-        def linear_layer(x):
-            # the derivative check in the gradient checker relates to the input of the function
-            # hence, the input should be out z - since the backward step computes @loss / @z
-            batch_size = x.shape[0]
-            linear = nn.Linear(in_dimension=4, out_dimension=2, activation_layer=nn.Relu())
-            next_layer_weights = np.random.rand(3, 2)
-            next_layer_grad = np.random.rand(batch_size, 3)
-            linear.z = x
-            loss = np.sum(next_layer_grad, axis=1)  # loss for each sample in batch
-            grad = linear.backward(next_layer_weights, next_layer_grad)
+        def linear_layer(z):
+            """
+            the derivative check in the gradient checker relates to the input of the function
+            hence, the input should be z - since the backward step computes @loss / @z
+            """
+
+            # simulate end of classification
+            a_L_mins_1 = util_functions.relu(z)
+
+            liner_softmax = nn.LinearWithSoftmax(in_dimension=2, out_dimension=5)
+            liner_softmax.set_weights(np.array([
+                [0, 1],
+                [0, 2],
+                [0, 2],
+                [0, 2],
+                [0, 1],
+
+            ]))
+            liner_softmax.set_biases(np.array([0, 0, 0, 0, 0]))
+            a_L = liner_softmax(a_L_mins_1)  # distribution vector
+            labels = np.zeros(a_L.shape)
+            labels[:, 1] = 1
+            layer_L_grad, loss = liner_softmax.backward(a_L, labels)
+            grad = layer_L_grad @ liner_softmax.get_weights() * util_functions.relu_derivative(z)
             return loss, grad
 
-        self.gradient_checker(linear_layer, np.array([[1, 2], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))  # batch size test
+        self.gradient_checker_batch_input(linear_layer, np.array([[1, 2], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))  # batch size test
 
 
 if __name__ == '__main__':
