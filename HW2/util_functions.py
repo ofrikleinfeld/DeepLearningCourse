@@ -33,34 +33,34 @@ def sigmoid_derivative(x):
     return sigmoid(x) * (1 - sigmoid(x))
 
 
-def conv2d_old(input_, weights, biases, stride=1, padding=0):
-    """ Implements a 2-D convolution operation.
-    Will perform using matrix multiplication operations
-    Arguments:
-    inputs -- an input signal with the dimensions of N X C X H X W
-         N is the batch size, C is number of channels, and H and W
-         are the input height and width
-    weights -- the kernel to perform convolution with. has a dimension of D x h X w
-        where D is number of filters to apply, h and w are the kernel dimensions
-    biases - bias terms. always 1 dimension array of shape D
-    """
-
-    if padding > 0:
-        input_ = _pad_input(input_, padding)
-
-    N, C, H, W = input_.shape
-    D, _, h, w = weights.shape
-    w_out = (H - h) // stride + 1
-    h_out = (W - w) // stride + 1
-
-    input_cols = _im2col(input_, weights, stride)
-    weight_rows = weights.reshape(D, C * h * w)
-    biases = biases.reshape(D, 1)  # in order to enable broadcasting
-
-    conv_res = weight_rows @ input_cols + biases
-    conv_res_shaped = conv_res.reshape(N, D, h_out, w_out)
-
-    return conv_res_shaped
+# def conv2d_old(input_, weights, biases, stride=1, padding=0):
+#     """ Implements a 2-D convolution operation.
+#     Will perform using matrix multiplication operations
+#     Arguments:
+#     inputs -- an input signal with the dimensions of N X C X H X W
+#          N is the batch size, C is number of channels, and H and W
+#          are the input height and width
+#     weights -- the kernel to perform convolution with. has a dimension of D x h X w
+#         where D is number of filters to apply, h and w are the kernel dimensions
+#     biases - bias terms. always 1 dimension array of shape D
+#     """
+#
+#     if padding > 0:
+#         input_ = _pad_input(input_, padding)
+#
+#     N, C, H, W = input_.shape
+#     D, _, h, w = weights.shape
+#     w_out = (H - h) // stride + 1
+#     h_out = (W - w) // stride + 1
+#
+#     input_cols = _im2col(input_, weights, stride)
+#     weight_rows = weights.reshape(D, C * h * w)
+#     biases = biases.reshape(D, 1)  # in order to enable broadcasting
+#
+#     conv_res = weight_rows @ input_cols + biases
+#     conv_res_shaped = conv_res.reshape(N, D, h_out, w_out)
+#
+#     return conv_res_shaped
 
 #
 # def _im2col(input_, weights, stride):

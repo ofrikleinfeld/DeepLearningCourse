@@ -468,6 +468,79 @@ class UtilsTests(unittest.TestCase):
 
         np.testing.assert_allclose(res.shape, expected_shape, atol=0.0001)
 
+    def test_gradient_conv_layer_batch_1(self):
+
+        a_L_minus_2 = np.array([  # shape of 6x1x2x2
+            [[[1, 3], [0, 1]]],
+            [[[1, 2], [0, 1]]],
+            [[[1, 2], [0, 2]]],
+            [[[1, 2], [2, -1]]],
+            [[[1, 2], [0, 1]]],
+            [[[1, 2], [-1, -1]]]
+        ])
+        kernel = np.array([  # shape of 2x1x2x2
+            [[[1, 2],
+              [0, -1]]],
+            [[[0, -1],
+             [1, -1]]]
+        ])
+        b = np.zeros(2)
+
+        z_L_minus_1 = np.array(  # shape of 6x2x1x1
+            [[[[6.]],
+              [[-4.]]
+              ],
+             [[[4.]],
+              [[-3.]]
+              ],
+             [[[3.]],
+              [[-4.]]
+              ],
+             [[[6.]],
+              [[1.]]
+              ],
+             [[[4.]],
+              [[-3.]]
+              ],
+             [[[6.]],
+              [[-2.]]
+              ]
+             ])
+
+        def conv_layer(z):
+            """
+            the derivative check in the gradient checker relates to the input of the function
+            hence, the input should be z - since the backward step computes @loss / @z
+            """
+
+            # simulate end of classification
+            conv = nn.Conv2d(1, 2, 2, activation_layer=UtilsTests.identity)
+            conv.set_weights(kernel)
+            conv.set_biases(b)
+
+            z = conv(a_L_minus_2)
+            N, C, H, W = z.shape
+            z_reshaped = z.reshape(N, C * H * W)
+            num_cols = z_reshaped.shape[1]
+            linear_softmax = nn.LinearWithSoftmax(in_dimension=num_cols, out_dimension=2)
+            linear_softmax.set_weights(np.array([
+                [2, 1],
+                [0, 2]
+            ]))
+            linear_softmax.set_biases(np.zeros(2))
+            labels = np.zeros(z_reshaped.shape)
+            labels[:, 0] = 1
+            dist = linear_softmax(z_reshaped)
+            layer_L_grad, loss = linear_softmax.backward(labels)
+            conv_layer_grad = conv.backward(layer_L_grad)
+            print(conv_layer_grad.shape)
+
+            #
+            # grad = linear_previous.backward(liner_softmax.get_weights(), layer_L_grad)
+            # return loss, grad
+
+
+        self.gradient_checker_batch_input(conv_layer, z_L_minus_1)  # batch size test
 
 if __name__ == '__main__':
     unittest.main()

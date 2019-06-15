@@ -56,7 +56,7 @@ class Conv2d(NetworkModuleWithParams):
         self.activation_layer = activation_layer
         self.stride = stride
         self.padding = padding
-        self.input_as_col_ = None
+        self.input_as_col = None
         self.a_minus_1 = None
         self.z = None
         self.a = None
@@ -71,6 +71,22 @@ class Conv2d(NetworkModuleWithParams):
         self.z, self.input_as_col_ = util_functions.conv2d(input_, self.weights, self.biases, self.stride)
         self.a = self.activation_layer(self.z)
         return self.a
+
+    def backward(self, next_layer_grad):
+        D, C, h, w = self.weights.shape
+
+        self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
+        self.b_grad = self.b_grad.reshape(D, -1)
+
+        next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
+        self.w_grad = next_layer_grad_reshaped @ self.input_as_col.T
+        self.w_grad = self.w_grad.reshape(self.weights.shape)
+
+        weights_reshape = self.weights.reshape(D, -1)
+        layer_grad_col = weights_reshape.T @ next_layer_grad_reshaped
+        self.layer_grad = util_functions.col2im_indices(layer_grad_col, self.a_minus_1.shape, h, w, padding=self.padding, stride=self.stride)
+
+        return self.layer_grad
 
 
 class Linear(NetworkModuleWithParams):
