@@ -6,10 +6,6 @@ import HW2.modules as nn
 
 class UtilsTests(unittest.TestCase):
 
-    @staticmethod
-    def identity(x):
-        return x
-
     def gradient_checker(self, f, w):
         """ Gradient check for a function f.
         Arguments:
@@ -64,8 +60,8 @@ class UtilsTests(unittest.TestCase):
                 eps = np.zeros(sample_input.shape)
                 eps[iw] = h
 
-                loss_plus_eps = f(sample_input.reshape(1, -1) + eps)[0]
-                loss_minus_eps = f(sample_input.reshape(1, -1) - eps)[0]
+                loss_plus_eps = f(np.expand_dims(sample_input, axis=0) + eps)[0]
+                loss_minus_eps = f(np.expand_dims(sample_input, axis=0) - eps)[0]
 
                 numeric_gradient = (loss_plus_eps - loss_minus_eps) / (2 * h)
 
@@ -243,42 +239,42 @@ class UtilsTests(unittest.TestCase):
 
         np.testing.assert_allclose(util_functions.relu(util_functions.linear(x, w, b)), expected_res, atol=0.0001)
 
-    def test_conv2d_module_1(self):
-        # 1 sample, 1 color map, 5x5
-        x = np.array([[[[0, 0, 0, 0, 0], [0, 1, 2, 3, 0], [0, 4, 5, 6, 0], [0, 7, 8, 9, 0], [0, 0, 0, 0, 0]]]])
-
-        # 1 filter of size 3x3 (for 1 color map)
-        w = np.array([[[[1, 2, 1], [0, 0, 0], [-1, -2, -1]]]])
-
-        bias = np.zeros(1)  # 1 filter so 1 bias term
-
-        # result of dimension (1, 1, 3, 3)
-        expected_res = np.array([[[[-13., -20., -17.],
-                                [-18., -24., -18.],
-                                [13.,  20.,  17.]]]])
-
-        conv_layer = nn.Conv2d(1, 1, kernel_size=3, stride=1, activation_layer=UtilsTests.identity)
-        conv_layer.set_weights(w)
-        conv_layer.set_biases(bias)
-
-        conv_layer(x)
-        z = conv_layer.z
-
-        np.testing.assert_allclose(z, expected_res, atol=0.0001)
-
+    # def test_conv2d_module_1(self):
+    #     # 1 sample, 1 color map, 5x5
+    #     x = np.array([[[[0, 0, 0, 0, 0], [0, 1, 2, 3, 0], [0, 4, 5, 6, 0], [0, 7, 8, 9, 0], [0, 0, 0, 0, 0]]]])
+    #
+    #     # 1 filter of size 3x3 (for 1 color map)
+    #     w = np.array([[[[1, 2, 1], [0, 0, 0], [-1, -2, -1]]]])
+    #
+    #     bias = np.zeros(1)  # 1 filter so 1 bias term
+    #
+    #     # result of dimension (1, 1, 3, 3)
+    #     expected_res = np.array([[[[-13., -20., -17.],
+    #                             [-18., -24., -18.],
+    #                             [13.,  20.,  17.]]]])
+    #
+    #     conv_layer = nn.Conv2d(1, 1, kernel_size=3, stride=1, activation_layer=UtilsTests.identity)
+    #     conv_layer.set_weights(w)
+    #     conv_layer.set_biases(bias)
+    #
+    #     conv_layer(x)
+    #     z = conv_layer.z
+    #
+    #     np.testing.assert_allclose(z, expected_res, atol=0.0001)
+    #
     def test_linear_module_1(self):
         x = np.array([[1, 2, 33, 15]])
         w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
         b = np.zeros(2)
         expected_res = np.array([[2., 70.]])
 
-        linear_layer = nn.Linear(4, 2, activation_layer=UtilsTests.identity)
+        linear_layer = nn.Linear(4, 2)
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
 
-        a = linear_layer(x)
+        z = linear_layer(x)
 
-        np.testing.assert_allclose(a, expected_res, atol=0.0001)
+        np.testing.assert_allclose(z, expected_res, atol=0.0001)
 
     def test_liner_module_relu_1(self):
         x = np.array([[1, 2, 0, -1], [1, 2, 33, 15]])
@@ -286,11 +282,13 @@ class UtilsTests(unittest.TestCase):
         b = np.array([-5., -1.])
         expected_res = np.array([[0., 3.], [0., 69.]])
 
-        linear_layer = nn.Linear(4, 2, activation_layer=nn.Relu())
+        linear_layer = nn.Linear(4, 2)
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
 
-        a = linear_layer(x)
+        relu_layer = nn.Relu()
+        z = linear_layer(x)
+        a = relu_layer(z)
 
         np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
@@ -300,11 +298,13 @@ class UtilsTests(unittest.TestCase):
         b = np.array([-5., -1.])
         expected_res = np.array([[0., 3.], [0., 1.]])
 
-        linear_layer = nn.Linear(4, 2, activation_layer=nn.Relu())
+        linear_layer = nn.Linear(4, 2)
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
 
-        a = linear_layer(x)
+        relu_layer = nn.Relu()
+        z = linear_layer(x)
+        a = relu_layer(z)
 
         np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
@@ -314,11 +314,13 @@ class UtilsTests(unittest.TestCase):
         b = np.zeros(2)
         expected_res = np.array([[.119202, .88079], [.5, .5]])
 
-        linear_layer = nn.Linear(4, 2, activation_layer=nn.Softmax())
+        linear_layer = nn.Linear(4, 2)
         linear_layer.set_weights(w)
         linear_layer.set_biases(b)
 
-        a = linear_layer(x)
+        softmax_layer = nn.Softmax()
+        z = linear_layer(x)
+        a = softmax_layer(z)
 
         np.testing.assert_allclose(a, expected_res, atol=0.0001)
 
@@ -377,7 +379,7 @@ class UtilsTests(unittest.TestCase):
 
         self.gradient_checker_batch_input(sigmoid_layer, np.array([[1, 2, -1, -2], [1, 2, -1, -2]]))  # batch size test
 
-    def test_gradient_linear_layer_batch_1(self):
+    def test_gradient_linear_layer_batch(self):
 
         def linear_layer(z):
             """
@@ -386,10 +388,11 @@ class UtilsTests(unittest.TestCase):
             """
 
             # simulate end of classification
-            a_L_mins_1 = util_functions.relu(z)
+            relu_layer = nn.Relu()
+            a_L_mins_1 = relu_layer(z)
 
-            liner_softmax = nn.LinearWithSoftmax(in_dimension=2, out_dimension=5)
-            liner_softmax.set_weights(np.array([
+            linear_L = nn.Linear(in_dimension=2, out_dimension=5)
+            linear_L.set_weights(np.array([
                 [0, 1],
                 [0, 2],
                 [0, 2],
@@ -397,150 +400,196 @@ class UtilsTests(unittest.TestCase):
                 [0, 1],
 
             ]))
-            liner_softmax.set_biases(np.array([0, 0, 0, 0, 0]))
-            a_L = liner_softmax(a_L_mins_1)  # distribution vector
+            linear_L.set_biases(np.array([0, 0, 0, 0, 0]))
+
+            softmax_L = nn.Softmax()
+            z_L = linear_L(a_L_mins_1)
+            a_L = softmax_L(z_L)
+
             labels = np.zeros(a_L.shape)
             labels[:, 1] = 1
-            layer_L_grad, loss = liner_softmax.backward(labels)
-            grad = layer_L_grad @ liner_softmax.get_weights() * util_functions.relu_derivative(z)
+            loss = -np.log(np.sum(a_L * labels, axis=1))
+            layer_L_grad = softmax_L.backward(labels)
+            grad = layer_L_grad @ linear_L.get_weights() * relu_layer.backward()
             return loss, grad
 
         self.gradient_checker_batch_input(linear_layer, np.array([[22, 3], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))  # batch size test
+        self.gradient_checker_batch_input(linear_layer, np.array([[1, 3], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))
 
-    def test_gradient_linear_layer_batch_2(self):
+    def test_gradient_flatten_layer_batch(self):
 
-        def linear_layer(z):
-            """
-            the derivative check in the gradient checker relates to the input of the function
-            hence, the input should be z - since the backward step computes @loss / @z
-            """
+        # z size is 2x3x4x4
+        z = np.array([[[[1, 2, 0, 1], [0, 0, 2, 1], [2, 1, 2, 1], [2, 0, 1, 2]],
+                       [[2, 1, 2, 1], [2, 2, 0, 0], [2, 0, 2, 0], [0, 1, 2, 1]],
+                       [[0, 2, 1, 2], [2, 1, 0, 0], [1, 1, 0, 1], [2, 1, 2, 2]]],
+                      [[[2, 1, 0, 0], [2, 2, 0, 1], [0, 0, 1, 0], [0, 2, 1, 1]],
+                       [[1, 1, 0, 0], [1, 0, 1, 1], [1, 1, 1, 1], [1, 2, 1, 1]],
+                       [[2, 2, 1, 0], [0, 2, 0, 1], [0, 0, 2, 2], [0, 1, 2, 0]]]])
 
-            # simulate end of classification
-            relu = nn.Relu()
-            a_L_mins_1 = relu(z)
+        w_L = np.array([[0.6881892 , 0.52568451, 0.36596662, 0.3826301 , 0.84299256,
+        0.55766545, 0.79826597, 0.59906424, 0.45119649, 0.29873219,
+        0.95950442, 0.90259326, 0.71561526, 0.87848583, 0.51235738,
+        0.44085556, 0.99806538, 0.17446175, 0.73219746, 0.76321222,
+        0.3269503 , 0.67003723, 0.08105612, 0.17789013, 0.87016942,
+        0.73115949, 0.57178014, 0.23227211, 0.37972477, 0.28508733,
+        0.47240048, 0.1453711 , 0.18006982, 0.74171713, 0.00892932,
+        0.521951  , 0.21183233, 0.72908835, 0.03955933, 0.21198875,
+        0.02974047, 0.84043704, 0.91020544, 0.10463805, 0.96402542,
+        0.26657336, 0.60137633, 0.97881282],
+       [0.0192244 , 0.8428359 , 0.65203514, 0.40715368, 0.53914569,
+        0.27307317, 0.54743349, 0.31933828, 0.19416524, 0.52484577,
+        0.45332771, 0.23135872, 0.81965197, 0.41534829, 0.62229574,
+        0.9318435 , 0.15060489, 0.49775094, 0.27773329, 0.79340574,
+        0.7876512 , 0.06391876, 0.7447968 , 0.05007631, 0.30948458,
+        0.81222198, 0.81970602, 0.14809552, 0.67984271, 0.46589285,
+        0.91332432, 0.87325994, 0.3965656 , 0.35513036, 0.22743372,
+        0.36555223, 0.03041562, 0.12730802, 0.38488217, 0.24221227,
+        0.46506702, 0.7414589 , 0.70489737, 0.97213108, 0.46904931,
+        0.26802368, 0.76824031, 0.78498747],
+       [0.21973077, 0.2841096 , 0.42907162, 0.01979624, 0.24282574,
+        0.74082669, 0.7233429 , 0.41230427, 0.35046596, 0.35530596,
+        0.14382612, 0.75009273, 0.34291776, 0.86810133, 0.1739645 ,
+        0.16099521, 0.84131839, 0.32737914, 0.27426773, 0.60243704,
+        0.50239915, 0.91143134, 0.03127544, 0.76445815, 0.7524862 ,
+        0.74814287, 0.59896241, 0.64148864, 0.05095864, 0.54036924,
+        0.30603012, 0.18642942, 0.10908812, 0.7860116 , 0.79188573,
+        0.99836632, 0.79999588, 0.4902652 , 0.88223844, 0.66593393,
+        0.35426412, 0.54944994, 0.01750188, 0.9771826 , 0.9195825 ,
+        0.03914166, 0.44874936, 0.65759457],
+       [0.05798657, 0.0130046 , 0.96216221, 0.44154329, 0.80212338,
+        0.7119418 , 0.48039107, 0.35212055, 0.05337789, 0.2876405 ,
+        0.20401864, 0.30229314, 0.94080462, 0.14905823, 0.23914028,
+        0.98865669, 0.84330066, 0.52738021, 0.37195082, 0.8278445 ,
+        0.32147775, 0.21728075, 0.72050107, 0.66497911, 0.70063198,
+        0.03015462, 0.57353865, 0.98137602, 0.41684764, 0.79347122,
+        0.15393363, 0.94795841, 0.9649958 , 0.91246068, 0.21337732,
+        0.60945612, 0.34562726, 0.1542751 , 0.3793196 , 0.06708658,
+        0.93128214, 0.85778244, 0.75525804, 0.90934901, 0.85331578,
+        0.06732959, 0.60148106, 0.45098475]])
 
-            linear_previous = nn.Linear(in_dimension=3, out_dimension=2, activation_layer=relu)
-            linear_previous.a_minus_1 = z
+        b_L = np.zeros(4)
 
-            liner_softmax = nn.LinearWithSoftmax(in_dimension=2, out_dimension=5)
-            liner_softmax.set_weights(np.array([
-                [0, 1],
-                [0, 2],
-                [0, 2],
-                [0, 2],
-                [0, 1],
+        def flatten(z_):
+            flatten_layer = nn.Flatten()
+            linear = nn.Linear(in_dimension=48, out_dimension=4)
+            softmax = nn.Softmax()
 
-            ]))
-            liner_softmax.set_biases(np.array([0, 0, 0, 0, 0]))
-            a_L = liner_softmax(a_L_mins_1)  # distribution vector
+            linear.weights = w_L
+            linear.biases = b_L
+
+            a_f = flatten_layer(z_)
+            z_L = linear(a_f)
+            a_L = softmax(z_L)
+
             labels = np.zeros(a_L.shape)
             labels[:, 1] = 1
-            layer_L_grad, loss = liner_softmax.backward(labels)
+            loss = -np.log(np.sum(a_L * labels, axis=1))
 
-            grad = linear_previous.backward(liner_softmax.get_weights(), layer_L_grad)
+            layer_L_grad = softmax.backward(labels)
+            grad = flatten_layer.backward(linear.weights, layer_L_grad)
             return loss, grad
 
-        self.gradient_checker_batch_input(linear_layer, np.array([[1, 3], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))  # batch size test
+        self.gradient_checker_batch_input(flatten, z)
 
-    def test_conv2d_res_shape_padding(self):
-        # 1 sample, 1 color map, 10x10
-        x = np.array([[[
-            [0, 0, 0, 0, 0, -1, 2, 1, -1, 0],
-            [0, 0, 0, 0, 0, -1, 2, 1, -1, 0],
-            [0, 1, 2, 3, 0, -1, 2, -1, -2, 1],
-            [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
-            [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
-            [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
-            [0, 7, 8, 9, 0, 1, 2, -1, 0, 1],
-            [0, 7, 8, 9, 0, 1, 2, -1, 0, 1],
-            [0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
-        ]]])
+    # def test_conv2d_res_shape_padding(self):
+    #     # 1 sample, 1 color map, 10x10
+    #     x = np.array([[[
+    #         [0, 0, 0, 0, 0, -1, 2, 1, -1, 0],
+    #         [0, 0, 0, 0, 0, -1, 2, 1, -1, 0],
+    #         [0, 1, 2, 3, 0, -1, 2, -1, -2, 1],
+    #         [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
+    #         [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
+    #         [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
+    #         [0, 7, 8, 9, 0, 1, 2, -1, 0, 1],
+    #         [0, 7, 8, 9, 0, 1, 2, -1, 0, 1],
+    #         [0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
+    #         [0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
+    #     ]]])
+    #
+    #     # 1 filter of size 3x3 (for 1 color map)
+    #     w = np.array([[[[1, 2, 1], [0, 0, 0], [-1, -2, -1]]]])
+    #
+    #     bias = np.zeros(1)  # 1 filter so 1 bias term
+    #
+    #     # result of dimension (1, 1, 10, 10)
+    #     res, _ = util_functions.conv2d(x, w, bias, stride=1, padding=1)
+    #     expected_shape = np.array((1, 1, 10, 10))
+    #
+    #     np.testing.assert_allclose(res.shape, expected_shape, atol=0.0001)
 
-        # 1 filter of size 3x3 (for 1 color map)
-        w = np.array([[[[1, 2, 1], [0, 0, 0], [-1, -2, -1]]]])
-
-        bias = np.zeros(1)  # 1 filter so 1 bias term
-
-        # result of dimension (1, 1, 10, 10)
-        res, _ = util_functions.conv2d(x, w, bias, stride=1, padding=1)
-        expected_shape = np.array((1, 1, 10, 10))
-
-        np.testing.assert_allclose(res.shape, expected_shape, atol=0.0001)
-
-    def test_gradient_conv_layer_batch_1(self):
-
-        a_L_minus_2 = np.array([  # shape of 6x1x2x2
-            [[[1, 3], [0, 1]]],
-            [[[1, 2], [0, 1]]],
-            [[[1, 2], [0, 2]]],
-            [[[1, 2], [2, -1]]],
-            [[[1, 2], [0, 1]]],
-            [[[1, 2], [-1, -1]]]
-        ])
-        kernel = np.array([  # shape of 2x1x2x2
-            [[[1, 2],
-              [0, -1]]],
-            [[[0, -1],
-             [1, -1]]]
-        ])
-        b = np.zeros(2)
-
-        z_L_minus_1 = np.array(  # shape of 6x2x1x1
-            [[[[6.]],
-              [[-4.]]
-              ],
-             [[[4.]],
-              [[-3.]]
-              ],
-             [[[3.]],
-              [[-4.]]
-              ],
-             [[[6.]],
-              [[1.]]
-              ],
-             [[[4.]],
-              [[-3.]]
-              ],
-             [[[6.]],
-              [[-2.]]
-              ]
-             ])
-
-        def conv_layer(z):
-            """
-            the derivative check in the gradient checker relates to the input of the function
-            hence, the input should be z - since the backward step computes @loss / @z
-            """
-
-            # simulate end of classification
-            conv = nn.Conv2d(1, 2, 2, activation_layer=UtilsTests.identity)
-            conv.set_weights(kernel)
-            conv.set_biases(b)
-
-            z = conv(a_L_minus_2)
-            N, C, H, W = z.shape
-            z_reshaped = z.reshape(N, C * H * W)
-            num_cols = z_reshaped.shape[1]
-            linear_softmax = nn.LinearWithSoftmax(in_dimension=num_cols, out_dimension=2)
-            linear_softmax.set_weights(np.array([
-                [2, 1],
-                [0, 2]
-            ]))
-            linear_softmax.set_biases(np.zeros(2))
-            labels = np.zeros(z_reshaped.shape)
-            labels[:, 0] = 1
-            dist = linear_softmax(z_reshaped)
-            layer_L_grad, loss = linear_softmax.backward(labels)
-            conv_layer_grad = conv.backward(layer_L_grad)
-            print(conv_layer_grad.shape)
-
-            #
-            # grad = linear_previous.backward(liner_softmax.get_weights(), layer_L_grad)
-            # return loss, grad
-
-
-        self.gradient_checker_batch_input(conv_layer, z_L_minus_1)  # batch size test
+    # def test_gradient_conv_layer_batch_1(self):
+    #
+    #     a_L_minus_2 = np.array([  # shape of 6x1x2x2
+    #         [[[1, 3], [0, 1]]],
+    #         [[[1, 2], [0, 1]]],
+    #         [[[1, 2], [0, 2]]],
+    #         [[[1, 2], [2, -1]]],
+    #         [[[1, 2], [0, 1]]],
+    #         [[[1, 2], [-1, -1]]]
+    #     ])
+    #     kernel = np.array([  # shape of 2x1x2x2
+    #         [[[1, 2],
+    #           [0, -1]]],
+    #         [[[0, -1],
+    #          [1, -1]]]
+    #     ])
+    #     b = np.zeros(2)
+    #
+    #     z_L_minus_1 = np.array(  # shape of 6x2x1x1
+    #         [[[[6.]],
+    #           [[-4.]]
+    #           ],
+    #          [[[4.]],
+    #           [[-3.]]
+    #           ],
+    #          [[[3.]],
+    #           [[-4.]]
+    #           ],
+    #          [[[6.]],
+    #           [[1.]]
+    #           ],
+    #          [[[4.]],
+    #           [[-3.]]
+    #           ],
+    #          [[[6.]],
+    #           [[-2.]]
+    #           ]
+    #          ])
+    #
+    #     def conv_layer(z):
+    #         """
+    #         the derivative check in the gradient checker relates to the input of the function
+    #         hence, the input should be z - since the backward step computes @loss / @z
+    #         """
+    #
+    #         # simulate end of classification
+    #         conv = nn.Conv2d(1, 2, 2, activation_layer=UtilsTests.identity)
+    #         conv.set_weights(kernel)
+    #         conv.set_biases(b)
+    #
+    #         z = conv(a_L_minus_2)
+    #         N, C, H, W = z.shape
+    #         z_reshaped = z.reshape(N, C * H * W)
+    #         num_cols = z_reshaped.shape[1]
+    #         linear_softmax = nn.LinearWithSoftmax(in_dimension=num_cols, out_dimension=2)
+    #         linear_softmax.set_weights(np.array([
+    #             [2, 1],
+    #             [0, 2]
+    #         ]))
+    #         linear_softmax.set_biases(np.zeros(2))
+    #         labels = np.zeros(z_reshaped.shape)
+    #         labels[:, 0] = 1
+    #         dist = linear_softmax(z_reshaped)
+    #         layer_L_grad, loss = linear_softmax.backward(labels)
+    #         conv_layer_grad = conv.backward(layer_L_grad)
+    #         print(conv_layer_grad.shape)
+    #
+    #         #
+    #         # grad = linear_previous.backward(liner_softmax.get_weights(), layer_L_grad)
+    #         # return loss, grad
+    #
+    #
+    #     self.gradient_checker_batch_input(conv_layer, z_L_minus_1)  # batch size test
 
 if __name__ == '__main__':
     unittest.main()
