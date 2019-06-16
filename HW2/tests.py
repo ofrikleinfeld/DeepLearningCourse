@@ -491,105 +491,275 @@ class UtilsTests(unittest.TestCase):
 
         self.gradient_checker_batch_input(flatten, z)
 
-    # def test_conv2d_res_shape_padding(self):
-    #     # 1 sample, 1 color map, 10x10
-    #     x = np.array([[[
-    #         [0, 0, 0, 0, 0, -1, 2, 1, -1, 0],
-    #         [0, 0, 0, 0, 0, -1, 2, 1, -1, 0],
-    #         [0, 1, 2, 3, 0, -1, 2, -1, -2, 1],
-    #         [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
-    #         [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
-    #         [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
-    #         [0, 7, 8, 9, 0, 1, 2, -1, 0, 1],
-    #         [0, 7, 8, 9, 0, 1, 2, -1, 0, 1],
-    #         [0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
-    #         [0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
-    #     ]]])
-    #
-    #     # 1 filter of size 3x3 (for 1 color map)
-    #     w = np.array([[[[1, 2, 1], [0, 0, 0], [-1, -2, -1]]]])
-    #
-    #     bias = np.zeros(1)  # 1 filter so 1 bias term
-    #
-    #     # result of dimension (1, 1, 10, 10)
-    #     res, _ = util_functions.conv2d(x, w, bias, stride=1, padding=1)
-    #     expected_shape = np.array((1, 1, 10, 10))
-    #
-    #     np.testing.assert_allclose(res.shape, expected_shape, atol=0.0001)
+    def test_conv2d_res_shape_padding(self):
+        # 1 sample, 1 color map, 10x10
+        x = np.array([[[
+            [0, 0, 0, 0, 0, -1, 2, 1, -1, 0],
+            [0, 0, 0, 0, 0, -1, 2, 1, -1, 0],
+            [0, 1, 2, 3, 0, -1, 2, -1, -2, 1],
+            [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
+            [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
+            [0, 4, 5, 6, 0, 0, 0, 1, 2, 0],
+            [0, 7, 8, 9, 0, 1, 2, -1, 0, 1],
+            [0, 7, 8, 9, 0, 1, 2, -1, 0, 1],
+            [0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, -1, 0, 0, 0, 0],
+        ]]])
 
-    # def test_gradient_conv_layer_batch_1(self):
-    #
-    #     a_L_minus_2 = np.array([  # shape of 6x1x2x2
-    #         [[[1, 3], [0, 1]]],
-    #         [[[1, 2], [0, 1]]],
-    #         [[[1, 2], [0, 2]]],
-    #         [[[1, 2], [2, -1]]],
-    #         [[[1, 2], [0, 1]]],
-    #         [[[1, 2], [-1, -1]]]
-    #     ])
-    #     kernel = np.array([  # shape of 2x1x2x2
-    #         [[[1, 2],
-    #           [0, -1]]],
-    #         [[[0, -1],
-    #          [1, -1]]]
-    #     ])
-    #     b = np.zeros(2)
-    #
-    #     z_L_minus_1 = np.array(  # shape of 6x2x1x1
-    #         [[[[6.]],
-    #           [[-4.]]
-    #           ],
-    #          [[[4.]],
-    #           [[-3.]]
-    #           ],
-    #          [[[3.]],
-    #           [[-4.]]
-    #           ],
-    #          [[[6.]],
-    #           [[1.]]
-    #           ],
-    #          [[[4.]],
-    #           [[-3.]]
-    #           ],
-    #          [[[6.]],
-    #           [[-2.]]
-    #           ]
-    #          ])
-    #
-    #     def conv_layer(z):
-    #         """
-    #         the derivative check in the gradient checker relates to the input of the function
-    #         hence, the input should be z - since the backward step computes @loss / @z
-    #         """
-    #
-    #         # simulate end of classification
-    #         conv = nn.Conv2d(1, 2, 2, activation_layer=UtilsTests.identity)
-    #         conv.set_weights(kernel)
-    #         conv.set_biases(b)
-    #
-    #         z = conv(a_L_minus_2)
-    #         N, C, H, W = z.shape
-    #         z_reshaped = z.reshape(N, C * H * W)
-    #         num_cols = z_reshaped.shape[1]
-    #         linear_softmax = nn.LinearWithSoftmax(in_dimension=num_cols, out_dimension=2)
-    #         linear_softmax.set_weights(np.array([
-    #             [2, 1],
-    #             [0, 2]
-    #         ]))
-    #         linear_softmax.set_biases(np.zeros(2))
-    #         labels = np.zeros(z_reshaped.shape)
-    #         labels[:, 0] = 1
-    #         dist = linear_softmax(z_reshaped)
-    #         layer_L_grad, loss = linear_softmax.backward(labels)
-    #         conv_layer_grad = conv.backward(layer_L_grad)
-    #         print(conv_layer_grad.shape)
-    #
-    #         #
-    #         # grad = linear_previous.backward(liner_softmax.get_weights(), layer_L_grad)
-    #         # return loss, grad
-    #
-    #
-    #     self.gradient_checker_batch_input(conv_layer, z_L_minus_1)  # batch size test
+        # 1 filter of size 3x3 (for 1 color map)
+        w = np.array([[[[1, 2, 1], [0, 0, 0], [-1, -2, -1]]]])
+
+        bias = np.zeros(1)  # 1 filter so 1 bias term
+
+        # result of dimension (1, 1, 10, 10)
+        res, _ = util_functions.conv2d(x, w, bias, stride=1, padding=1)
+        expected_shape = np.array((1, 1, 10, 10))
+
+        np.testing.assert_allclose(res.shape, expected_shape, atol=0.0001)
+
+    def test_gradient_conv_layer_batch(self):
+
+        a_L_minus_2 = np.array([  # shape of 6x1x2x2
+            [[[1, 3], [0, 1]]],
+            [[[1, 2], [0, 1]]],
+            [[[1, 2], [0, 2]]],
+            [[[1, 2], [2, -1]]],
+            [[[1, 2], [0, 1]]],
+            [[[1, 2], [-1, -1]]]
+        ])
+        kernel = np.array([  # shape of 2x1x2x2
+            [[[1, 2],
+              [0, -1]]],
+            [[[0, -1],
+             [1, -1]]]
+        ])
+
+        b_conv = np.zeros(2)
+
+        w_L = np.array([[0.88871247, 0.19604438], [0.17559195, 0.08066659]])  # shape 2x2
+
+        b_L = np.zeros(2)
+
+        def conv_layer(a):
+            """
+            the derivative check in the gradient checker relates to the input of the function
+            hence, the input should be z - since the backward step computes @loss / @z
+            """
+
+            # simulate end of classification
+
+            conv = nn.Conv2d(1, 2, 2)
+            conv.set_weights(kernel)
+            conv.set_biases(b_conv)
+
+            flatten_layer = nn.Flatten()
+
+            linear = nn.Linear(2, 2)
+            linear.weights = w_L
+            linear.biases = b_L
+
+            softmax_layer = nn.Softmax()
+
+            # forward pass
+            z = conv(a)
+            z_flatten = flatten_layer(z)
+
+            z_L = linear(z_flatten)
+            a_L = softmax_layer(z_L)
+
+            labels = np.zeros(a_L.shape)
+            labels[:, 1] = 1
+            loss = -np.log(np.sum(a_L * labels, axis=1))
+
+            # backward pass
+            layer_L_grad = softmax_layer.backward(labels)
+            flatten_grad = flatten_layer.backward(linear.weights, layer_L_grad)
+            conv_grad = conv.backward(flatten_grad)
+
+            return loss, conv_grad
+
+        self.gradient_checker_batch_input(conv_layer, a_L_minus_2)  # batch size test
+
+    def test_gradient_2_conv_layers_batch(self):
+
+        a_L_minus_3 = np.array([  # shape 6x1x3x3
+        [[[-1,  1,  1],
+         [ 1,  1,  0],
+         [-1,  0,  1]]],
+       [[[-1,  0,  1],
+         [ 0, -1,  0],
+         [ 1,  1, -1]]],
+       [[[ 1,  1, -1],
+         [ 0,  1, -1],
+         [-1, -1,  1]]],
+       [[[ 1,  1,  1],
+         [-1, -1,  0],
+         [ 0,  1,  1]]],
+       [[[-1,  0, -1],
+         [ 0,  1, -1],
+         [ 1,  1,  0]]],
+       [[[ 0,  0,  0],
+         [-1, -1,  1],
+         [ 0, -1, -1]]]
+        ])
+
+        kernel_L_minus2 = np.array(  # shape of 1x1x2x2
+            [[[[-1, 0], [0, 1]]]])
+
+        b_L_minus_2 = np.zeros(1)  # shape of 1x1
+
+        kernel_L_minus_1 = np.array([[[[-1]]], [[[0]]]])  # shape of 2x1x1x1
+
+        b_L_minus_1 = np.zeros(2)  # shape of 2x1
+
+        w_L = np.array(  # shape of 2x8
+            [[1, -1, 0, 1, 1, 0, 0, 0],
+             [1, -1, 1, 1, 1, -1, -1, 0]])
+
+        b_L = np.zeros(2)
+
+        def conv_layer(a):
+            """
+            the derivative check in the gradient checker relates to the input of the function
+            hence, the input should be z - since the backward step computes @loss / @z
+            """
+
+            # simulate end of classification
+
+            conv1 = nn.Conv2d(1, 1, 2)
+            conv1.set_weights(kernel_L_minus2)
+            conv1.set_biases(b_L_minus_2)
+
+            conv2 = nn.Conv2d(2, 1, 1)
+            conv2.set_weights(kernel_L_minus_1)
+            conv2.set_biases(b_L_minus_1)
+
+            flatten_layer = nn.Flatten()
+
+            linear = nn.Linear(2, 2)
+            linear.weights = w_L
+            linear.biases = b_L
+
+            softmax_layer = nn.Softmax()
+
+            # forward pass
+            z_L_minus_2 = conv1(a)
+            a_L_minus_2 = z_L_minus_2
+
+            z_L_minus_1 = conv2(a_L_minus_2)
+            a_L_minus_1 = z_L_minus_1
+
+            z_flatten = flatten_layer(a_L_minus_1)
+
+            z_L = linear(z_flatten)
+            a_L = softmax_layer(z_L)
+
+            labels = np.zeros(a_L.shape)
+            labels[:, 1] = 1
+            loss = -np.log(np.sum(a_L * labels, axis=1))
+
+            # backward pass
+            layer_L_grad = softmax_layer.backward(labels)
+            flatten_grad = flatten_layer.backward(linear.weights, layer_L_grad)
+            conv2_grad = conv2.backward(flatten_grad)
+            conv1_grad = conv1.backward(conv2_grad)
+
+            return loss, conv1_grad
+
+        self.gradient_checker_batch_input(conv_layer, a_L_minus_3)  # batch size test
+
+    def test_gradient_2_conv_layers_batch_with_sigmoid(self):
+
+        a_L_minus_3 = np.array([  # shape 6x1x3x3
+        [[[-1,  1,  1],
+         [ 1,  1,  0],
+         [-1,  0,  1]]],
+       [[[-1,  0,  1],
+         [ 0, -1,  0],
+         [ 1,  1, -1]]],
+       [[[ 1,  1, -1],
+         [ 0,  1, -1],
+         [-1, -1,  1]]],
+       [[[ 1,  1,  1],
+         [-1, -1,  0],
+         [ 0,  1,  1]]],
+       [[[-1,  0, -1],
+         [ 0,  1, -1],
+         [ 1,  1,  0]]],
+       [[[ 0,  0,  0],
+         [-1, -1,  1],
+         [ 0, -1, -1]]]
+        ])
+
+        kernel_L_minus2 = np.array(  # shape of 1x1x2x2
+            [[[[-1, 0], [0, 1]]]])
+
+        b_L_minus_2 = np.zeros(1)  # shape of 1x1
+
+        kernel_L_minus_1 = np.array([[[[-1]]], [[[0]]]])  # shape of 2x1x1x1
+
+        b_L_minus_1 = np.zeros(2)  # shape of 2x1
+
+        w_L = np.array(  # shape of 2x8
+            [[1, -1, 0, 1, 1, 0, 0, 0],
+             [1, -1, 1, 1, 1, -1, -1, 0]])
+
+        b_L = np.zeros(2)
+
+        def conv_layer(a):
+            """
+            the derivative check in the gradient checker relates to the input of the function
+            hence, the input should be z - since the backward step computes @loss / @z
+            """
+
+            # simulate end of classification
+
+            conv1 = nn.Conv2d(1, 1, 2)
+            conv1.set_weights(kernel_L_minus2)
+            conv1.set_biases(b_L_minus_2)
+
+            sig1 = nn.Sigmoid()
+
+            conv2 = nn.Conv2d(2, 1, 1)
+            conv2.set_weights(kernel_L_minus_1)
+            conv2.set_biases(b_L_minus_1)
+
+            sig2 = nn.Sigmoid()
+
+            flatten_layer = nn.Flatten()
+
+            linear = nn.Linear(2, 2)
+            linear.weights = w_L
+            linear.biases = b_L
+
+            softmax_layer = nn.Softmax()
+
+            # forward pass
+            z_L_minus_2 = conv1(a)
+            a_L_minus_2 = sig1(z_L_minus_2)
+
+            z_L_minus_1 = conv2(a_L_minus_2)
+            a_L_minus_1 = sig2(z_L_minus_1)
+
+            z_flatten = flatten_layer(a_L_minus_1)
+
+            z_L = linear(z_flatten)
+            a_L = softmax_layer(z_L)
+
+            labels = np.zeros(a_L.shape)
+            labels[:, 1] = 1
+            loss = -np.log(np.sum(a_L * labels, axis=1))
+
+            # backward pass
+            layer_L_grad = softmax_layer.backward(labels)
+            flatten_grad = flatten_layer.backward(linear.weights, layer_L_grad) * sig2.backward()
+            conv2_grad = conv2.backward(flatten_grad) * sig1.backward()
+            conv1_grad = conv1.backward(conv2_grad)
+
+            return loss, conv1_grad
+
+        self.gradient_checker_batch_input(conv_layer, a_L_minus_3)  # batch size test
+
 
 if __name__ == '__main__':
     unittest.main()

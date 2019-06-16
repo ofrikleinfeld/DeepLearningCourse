@@ -50,48 +50,44 @@ class NetworkModuleWithParams(NetworkModule):
         self.biases = new_biases
 
 
-# class Conv2d(NetworkModuleWithParams):
-#
-#     def __init__(self, in_channels, out_channels, kernel_size, activation_layer, stride=1, padding=0):
-#         super(Conv2d, self).__init__()
-#         self.in_channels = in_channels
-#         self.out_channels = out_channels
-#         self.kernel_size = kernel_size
-#         self.init_weights(in_channels, out_channels, kernel_size)
-#         self.activation_layer = activation_layer
-#         self.stride = stride
-#         self.padding = padding
-#         self.input_as_col = None
-#         self.a_minus_1 = None
-#         self.z = None
-#         self.a = None
-#
-#     def init_weights(self, in_channels, out_channels, kernel_size):
-#         # naive initialization from uniform distribution
-#         self.weights = np.random.rand(out_channels, in_channels, kernel_size, kernel_size)
-#         self.biases = np.random.rand(out_channels)
-#
-#     def __call__(self, input_):
-#         self.a_minus_1 = input_
-#         self.z, self.input_as_col_ = util_functions.conv2d(input_, self.weights, self.biases, self.stride)
-#         self.a = self.activation_layer(self.z)
-#         return self.a
-#
-#     def backward(self, next_layer_grad):
-#         D, C, h, w = self.weights.shape
-#
-#         self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
-#         self.b_grad = self.b_grad.reshape(D, -1)
-#
-#         next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
-#         self.w_grad = next_layer_grad_reshaped @ self.input_as_col.T
-#         self.w_grad = self.w_grad.reshape(self.weights.shape)
-#
-#         weights_reshape = self.weights.reshape(D, -1)
-#         layer_grad_col = weights_reshape.T @ next_layer_grad_reshaped
-#         self.layer_grad = util_functions.col2im_indices(layer_grad_col, self.a_minus_1.shape, h, w, padding=self.padding, stride=self.stride)
-#
-#         return self.layer_grad
+class Conv2d(NetworkModuleWithParams):
+
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0):
+        super(Conv2d, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.init_weights(in_channels, out_channels, kernel_size)
+        self.stride = stride
+        self.padding = padding
+        self.input_as_col_ = None
+        self.a_minus_1 = None
+
+    def init_weights(self, in_channels, out_channels, kernel_size):
+        # naive initialization from uniform distribution
+        self.weights = np.random.rand(out_channels, in_channels, kernel_size, kernel_size)
+        self.biases = np.random.rand(out_channels)
+
+    def __call__(self, input_):
+        self.a_minus_1 = input_
+        self.z, self.input_as_col_ = util_functions.conv2d(input_, self.weights, self.biases, self.stride)
+        return self.z
+
+    def backward(self, next_layer_grad):
+        D, C, h, w = self.weights.shape
+
+        self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
+        self.b_grad = self.b_grad.reshape(D, -1)
+
+        next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
+        self.w_grad = next_layer_grad_reshaped @ self.input_as_col_.T
+        self.w_grad = self.w_grad.reshape(self.weights.shape)
+
+        weights_reshape = self.weights.reshape(D, -1)
+        layer_grad_col = weights_reshape.T @ next_layer_grad_reshaped
+        self.layer_grad = util_functions.col2im_indices(layer_grad_col, self.a_minus_1.shape, h, w, padding=self.padding, stride=self.stride)
+
+        return self.layer_grad
 
 
 class Linear(NetworkModuleWithParams):
