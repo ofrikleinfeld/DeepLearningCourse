@@ -52,14 +52,17 @@ def load_dataset(data_file, labeled=True, normalize=False):
             data_samples.append(data)
 
     data_array = np.array(data_samples).reshape((len(data_samples), -1, 1))
+
     if normalize == True:
         data_mean = data_array.mean(axis=0)
         data_std = data_array.std(axis=0)
         data_array = (data_array - data_mean) / data_std
         outputs += [data_mean, data_std]
-    elif (type(normalize) == tuple):
+
+    elif type(normalize) == tuple:
         data_array = (data_array - normalize[0]) / normalize[1]
     outputs.append(data_array)
+
     if labeled:
         labels_array = np.array(labels)
         outputs.append(labels_array)

@@ -239,29 +239,6 @@ class UtilsTests(unittest.TestCase):
 
         np.testing.assert_allclose(util_functions.relu(util_functions.linear(x, w, b)), expected_res, atol=0.0001)
 
-    # def test_conv2d_module_1(self):
-    #     # 1 sample, 1 color map, 5x5
-    #     x = np.array([[[[0, 0, 0, 0, 0], [0, 1, 2, 3, 0], [0, 4, 5, 6, 0], [0, 7, 8, 9, 0], [0, 0, 0, 0, 0]]]])
-    #
-    #     # 1 filter of size 3x3 (for 1 color map)
-    #     w = np.array([[[[1, 2, 1], [0, 0, 0], [-1, -2, -1]]]])
-    #
-    #     bias = np.zeros(1)  # 1 filter so 1 bias term
-    #
-    #     # result of dimension (1, 1, 3, 3)
-    #     expected_res = np.array([[[[-13., -20., -17.],
-    #                             [-18., -24., -18.],
-    #                             [13.,  20.,  17.]]]])
-    #
-    #     conv_layer = nn.Conv2d(1, 1, kernel_size=3, stride=1, activation_layer=UtilsTests.identity)
-    #     conv_layer.set_weights(w)
-    #     conv_layer.set_biases(bias)
-    #
-    #     conv_layer(x)
-    #     z = conv_layer.z
-    #
-    #     np.testing.assert_allclose(z, expected_res, atol=0.0001)
-    #
     def test_linear_module_1(self):
         x = np.array([[1, 2, 33, 15]])
         w = np.array([[0., 1., 0., 0.], [0., 2., 2., 0.]])
@@ -759,6 +736,48 @@ class UtilsTests(unittest.TestCase):
             return loss, conv1_grad
 
         self.gradient_checker_batch_input(conv_layer, a_L_minus_3)  # batch size test
+
+    # def test_gradient_linear_dropout_batch(self):
+    #
+    #     def linear_layer(z):
+    #         """
+    #         the derivative check in the gradient checker relates to the input of the function
+    #         hence, the input should be z - since the backward step computes @loss / @z
+    #         """
+    #
+    #         # simulate end of classification
+    #         relu_layer = nn.Relu()
+    #         dropout = nn.Dropout(0.5)
+    #         dropout.dropout_layer =
+    #
+    #         linear_L = nn.Linear(in_dimension=2, out_dimension=5)
+    #         linear_L.set_weights(np.array([
+    #             [0, 1],
+    #             [0, 2],
+    #             [0, 2],
+    #             [0, 2],
+    #             [0, 1],
+    #
+    #         ]))
+    #         linear_L.set_biases(np.array([0, 0, 0, 0, 0]))
+    #
+    #         softmax_L = nn.Softmax()
+    #
+    #         a_L_minus_1_before_drop = relu_layer(z)
+    #         a_L_minus_1 = dropout(a_L_minus_1_before_drop)
+    #         z_L = linear_L(a_L_minus_1)
+    #         a_L = softmax_L(z_L)
+    #
+    #         labels = np.zeros(a_L.shape)
+    #         labels[:, 1] = 1
+    #         loss = -np.log(np.sum(a_L * labels, axis=1))
+    #
+    #         layer_L_grad = softmax_L.backward(labels)
+    #         grad = layer_L_grad @ linear_L.get_weights() * relu_layer.backward() * dropout.backward()
+    #         return loss, grad
+    #
+    #     self.gradient_checker_batch_input(linear_layer, np.array([[22, 3], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))  # batch size test
+    #     self.gradient_checker_batch_input(linear_layer, np.array([[1, 3], [1, 2], [1, 2], [1, 2], [1, 2], [1, 2]]))
 
 
 if __name__ == '__main__':
