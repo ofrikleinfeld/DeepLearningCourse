@@ -28,6 +28,10 @@ class NetworkModuleWithParams(NetworkModule):
     def init_weights(self, *args):
         raise NotImplementedError("Sub class must implement an initialization method for weights")
 
+    def xavier_initialization(self, in_dimension, out_dimension):
+        self.weights = np.random.normal(loc=0, scale=in_dimension, size=(out_dimension, in_dimension))
+        self.biases = np.random.normal(loc=0, scale=in_dimension, size=out_dimension)
+
     def get_weights(self):
         return self.weights
 
@@ -64,9 +68,9 @@ class Conv2d(NetworkModuleWithParams):
         self.a_minus_1 = None
 
     def init_weights(self, in_channels, out_channels, kernel_size):
-        # naive initialization from uniform distribution
-        self.weights = np.random.rand(out_channels, in_channels, kernel_size, kernel_size)
-        self.biases = np.random.rand(out_channels)
+        # xavier initialization
+        self.weights = np.random.normal(size=(out_channels, in_channels, kernel_size, kernel_size))
+        self.biases = np.random.normal(loc=0, scale=in_channels, size=out_channels)
 
     def __call__(self, input_):
         self.a_minus_1 = input_
@@ -77,7 +81,7 @@ class Conv2d(NetworkModuleWithParams):
         D, C, h, w = self.weights.shape
 
         self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
-        self.b_grad = self.b_grad.reshape(D, -1)
+        self.b_grad = self.b_grad.reshape(D)
 
         next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
         self.w_grad = next_layer_grad_reshaped @ self.input_as_col_.T
@@ -98,9 +102,8 @@ class Linear(NetworkModuleWithParams):
         self.a_minus_1 = None
 
     def init_weights(self, in_dimension, out_dimension):
-        # naive initialization from uniform distribution
-        self.weights = np.random.rand(out_dimension, in_dimension)
-        self.biases = np.random.rand(out_dimension)
+        # xavier initialization
+        self.xavier_initialization(in_dimension=in_dimension, out_dimension=out_dimension)
 
     def __call__(self, input_):
         self.a_minus_1 = input_
@@ -109,6 +112,31 @@ class Linear(NetworkModuleWithParams):
 
     def backward(self, next_layer_weights, next_layer_grad):
         self.layer_grad = next_layer_grad @ next_layer_weights
+        self.w_grad = self.layer_grad.T @ self.a_minus_1
+        self.b_grad = self.layer_grad
+        return self.layer_grad
+
+
+class LinearWithSoftmax(NetworkModuleWithParams):
+
+    def __init__(self, in_dimension, out_dimension):
+        super(LinearWithSoftmax, self).__init__()
+        self.init_weights(in_dimension, out_dimension)
+        self.a_minus_1 = None
+        self.softmax = Softmax()
+
+    def init_weights(self, in_dimension, out_dimension):
+        # xavier initialization
+        self.xavier_initialization(in_dimension=in_dimension, out_dimension=out_dimension)
+
+    def __call__(self, input_):
+        self.a_minus_1 = input_
+        self.z = util_functions.linear(input_, self.weights, self.biases)
+        self.a = self.softmax(self.z)
+        return self.a
+
+    def backward(self, labels):
+        self.layer_grad = self.softmax.backward(labels)
         self.w_grad = self.layer_grad.T @ self.a_minus_1
         self.b_grad = self.layer_grad
         return self.layer_grad
