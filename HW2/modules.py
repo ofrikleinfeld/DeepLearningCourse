@@ -64,7 +64,7 @@ class Conv2d(NetworkModuleWithParams):
         self.init_weights(in_channels, out_channels, kernel_size)
         self.stride = stride
         self.padding = padding
-        self.input_as_col_ = None
+        self.x_cols = None
         self.a_minus_1 = None
 
     def init_weights(self, in_channels, out_channels, kernel_size):
@@ -74,22 +74,18 @@ class Conv2d(NetworkModuleWithParams):
 
     def __call__(self, input_):
         self.a_minus_1 = input_
-        self.z, self.input_as_col_ = util_functions.conv2d(input_, self.weights, self.biases, self.stride)
+        self.z, self.x_cols = util_functions.conv2d(input_, self.weights, self.biases, self.stride)
         return self.z
 
     def backward(self, next_layer_grad):
-        D, C, h, w = self.weights.shape
-
         self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
-        self.b_grad = self.b_grad.reshape(D)
 
+        D, C, h, w = self.weights.shape
         next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
-        self.w_grad = next_layer_grad_reshaped @ self.input_as_col_.T
-        self.w_grad = self.w_grad.reshape(self.weights.shape)
+        self.w_grad = (next_layer_grad_reshaped @ self.x_cols.T).reshape(self.weights.shape)
 
-        weights_reshape = self.weights.reshape(D, -1)
-        layer_grad_col = weights_reshape.T @ next_layer_grad_reshaped
-        self.layer_grad = util_functions.col2im_indices(layer_grad_col, self.a_minus_1.shape, h, w, padding=self.padding, stride=self.stride)
+        dx_cols = self.weights.reshape(D, -1).T @ next_layer_grad_reshaped
+        self.layer_grad = util_functions.col2im_indices(dx_cols, self.a_minus_1.shape, h, w, self.padding, self.stride)
 
         return self.layer_grad
 
@@ -112,7 +108,9 @@ class Linear(NetworkModuleWithParams):
 
     def backward(self, next_layer_weights, next_layer_grad):
         self.layer_grad = next_layer_grad @ next_layer_weights
-        self.w_grad = self.layer_grad.T @ self.a_minus_1
+        batch_size, feature_size = self.layer_grad.shape
+        _, prev_layer_feature_size = self.a_minus_1.shape
+        self.w_grad = self.layer_grad.reshape(batch_size, feature_size, 1) @ self.a_minus_1.reshape(batch_size, 1, prev_layer_feature_size)
         self.b_grad = self.layer_grad
         return self.layer_grad
 
@@ -137,7 +135,9 @@ class LinearWithSoftmax(NetworkModuleWithParams):
 
     def backward(self, labels):
         self.layer_grad = self.softmax.backward(labels)
-        self.w_grad = self.layer_grad.T @ self.a_minus_1
+        batch_size, feature_size = self.layer_grad.shape
+        _, prev_layer_feature_size = self.a_minus_1.shape
+        self.w_grad = self.layer_grad.reshape(batch_size, feature_size, 1) @ self.a_minus_1.reshape(batch_size, 1, prev_layer_feature_size)
         self.b_grad = self.layer_grad
         return self.layer_grad
 

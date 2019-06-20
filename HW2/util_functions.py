@@ -33,67 +33,6 @@ def sigmoid_derivative(x):
     return sigmoid(x) * (1 - sigmoid(x))
 
 
-# def conv2d_old(input_, weights, biases, stride=1, padding=0):
-#     """ Implements a 2-D convolution operation.
-#     Will perform using matrix multiplication operations
-#     Arguments:
-#     inputs -- an input signal with the dimensions of N X C X H X W
-#          N is the batch size, C is number of channels, and H and W
-#          are the input height and width
-#     weights -- the kernel to perform convolution with. has a dimension of D x h X w
-#         where D is number of filters to apply, h and w are the kernel dimensions
-#     biases - bias terms. always 1 dimension array of shape D
-#     """
-#
-#     if padding > 0:
-#         input_ = _pad_input(input_, padding)
-#
-#     N, C, H, W = input_.shape
-#     D, _, h, w = weights.shape
-#     w_out = (H - h) // stride + 1
-#     h_out = (W - w) // stride + 1
-#
-#     input_cols = _im2col(input_, weights, stride)
-#     weight_rows = weights.reshape(D, C * h * w)
-#     biases = biases.reshape(D, 1)  # in order to enable broadcasting
-#
-#     conv_res = weight_rows @ input_cols + biases
-#     conv_res_shaped = conv_res.reshape(N, D, h_out, w_out)
-#
-#     return conv_res_shaped
-
-#
-# def _im2col(input_, weights, stride):
-#
-#     _, C, H, W = input_.shape
-#     D, _, w, h = weights.shape
-#     w_out = (H - h) // stride + 1
-#     h_out = (W - w) // stride + 1
-#
-#     i0 = np.repeat(np.arange(h), w)
-#     i0 = np.tile(i0, C)
-#     i1 = stride * np.repeat(np.arange(h_out), w_out)
-#
-#     j0 = np.tile(np.arange(w), h * C)
-#     j1 = stride * np.tile(np.arange(w_out), h_out)
-#
-#     i = i0.reshape(-1, 1) + i1.reshape(1, -1)
-#     j = j0.reshape(-1, 1) + j1.reshape(1, -1)
-#     k = np.repeat(np.arange(C), h * w).reshape(-1, 1)
-#
-#     input_cols = input_[:, k, i, j]
-#     return input_cols
-#
-#
-# def _pad_input(input_, padding):
-#     N, C, H, W = input_.shape
-#     padded_shape = (N, C, H + 2 * padding, W + 2 * padding)
-#     input_padded = np.full(padded_shape, 0)
-#     input_padded[:, :, :H, :W] = input_
-#
-#     return input_padded
-
-
 def linear(input_, weights, biases):
     """ Implements a fully connected liner transformation operation.
     Will perform using matrix multiplication operations
@@ -175,6 +114,39 @@ def im2col_indices(x, field_height, field_width, padding=1, stride=1):
     return cols
 
 
+def conv2d(input_, weights, biases, stride=1, padding=0):
+    """ Implements a 2-D convolution operation.
+    Will perform using matrix multiplication operations
+    Arguments:
+    inputs -- an input signal with the dimensions of N X C X H X W
+         N is the batch size, C is number of channels, and H and W
+         are the input height and width
+    weights -- the kernel to perform convolution with. has a dimension of D x h X w
+        where D is number of filters to apply, h and w are the kernel dimensions
+    biases - bias terms. always 1 dimension array of shape D
+    """
+
+    D, C, h, w = weights.shape
+    N, C, H, W = input_.shape
+    h_out = (H - h + 2 * padding) / stride + 1
+    w_out = (W - w + 2 * padding) / stride + 1
+
+    if not h_out.is_integer() or not w_out.is_integer():
+        raise Exception('Invalid output dimension!')
+
+    h_out, w_out = int(h_out), int(w_out)
+
+    X_col = im2col_indices(input_, h, w, padding=padding, stride=stride)
+    W_col = weights.reshape(D, -1)
+
+    biases = biases.reshape(D, 1)  # in order to enable broadcasting
+    out = W_col @ X_col + biases
+    out = out.reshape(D, h_out, w_out, N)
+    out = out.transpose(3, 0, 1, 2)
+
+    return out, X_col
+
+
 def col2im_indices(cols, x_shape, field_height=3, field_width=3, padding=1,
                    stride=1):
     """ An implementation of col2im based on fancy indexing and np.add.at """
@@ -190,35 +162,3 @@ def col2im_indices(cols, x_shape, field_height=3, field_width=3, padding=1,
 
     return x_padded[:, :, padding:-padding, padding:-padding]
 
-
-def conv2d(input_, weights, biases, stride=1, padding=0):
-    """ Implements a 2-D convolution operation.
-    Will perform using matrix multiplication operations
-    Arguments:
-    inputs -- an input signal with the dimensions of N X C X H X W
-         N is the batch size, C is number of channels, and H and W
-         are the input height and width
-    weights -- the kernel to perform convolution with. has a dimension of D x h X w
-        where D is number of filters to apply, h and w are the kernel dimensions
-    biases - bias terms. always 1 dimension array of shape D
-    """
-
-    n_filters, d_filter, h_filter, w_filter = weights.shape
-    n_x, d_x, h_x, w_x = input_.shape
-    h_out = (h_x - h_filter + 2 * padding) / stride + 1
-    w_out = (w_x - w_filter + 2 * padding) / stride + 1
-
-    if not h_out.is_integer() or not w_out.is_integer():
-        raise Exception('Invalid output dimension!')
-
-    h_out, w_out = int(h_out), int(w_out)
-
-    X_col = im2col_indices(input_, h_filter, w_filter, padding=padding, stride=stride)
-    W_col = weights.reshape(n_filters, -1)
-
-    biases = biases.reshape(n_filters, 1)  # in order to enable broadcasting
-    out = W_col @ X_col + biases
-    out = out.reshape(n_filters, h_out, w_out, n_x)
-    out = out.transpose(3, 0, 1, 2)
-
-    return out, X_col
