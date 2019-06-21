@@ -27,11 +27,7 @@ class SGDOptimizer(object):
                         b -= self.weights_decay_rate * b
 
                 # perform SGD step with average batch gradient
-                if len(w.shape) > 2:
-                    w -= self.lr * weights_grad
-                else:
-                    w -= self.lr * np.mean(weights_grad, axis=0)
-
+                w -= self.lr * np.mean(weights_grad, axis=0)
                 b -= self.lr * np.mean(biases_grad, axis=0)
 
                 # update the layer weights after SGD step

@@ -780,6 +780,80 @@ class UtilsTests(unittest.TestCase):
 
         self.gradient_checker_weights(conv, b_, min_diff=1e-3)
 
+    def test_gradient_2_conv_layers_batch(self):
+
+        x_ = np.array([  # shape 6x1x3x3
+        [[[-1,  1,  1],
+         [ 1,  1,  0],
+         [-1,  0,  1]]],
+       [[[-1,  0,  1],
+         [ 0, -1,  0],
+         [ 1,  1, -1]]],
+       [[[ 1,  1, -1],
+         [ 0,  1, -1],
+         [-1, -1,  1]]],
+       [[[ 1,  1,  1],
+         [-1, -1,  0],
+         [ 0,  1,  1]]],
+       [[[-1,  0, -1],
+         [ 0,  1, -1],
+         [ 1,  1,  0]]],
+       [[[ 0,  0,  0],
+         [-1, -1,  1],
+         [ 0, -1, -1]]]
+        ])
+
+        def conv_layer(x):
+            """
+            the derivative check in the gradient checker relates to the input of the function
+            hence, the input should be z - since the backward step computes @loss / @z
+            """
+
+            conv1 = nn.Conv2d(in_channels=1, out_channels=2, kernel_size=2)
+            relu1 = nn.Relu()
+            conv2 = nn.Conv2d(in_channels=2, out_channels=4, kernel_size=2)
+            relu2 = nn.Relu()
+            flatten = nn.Flatten()
+            linear = nn.Linear(4, 2)
+            softmax = nn.Softmax()
+
+            # forward pass
+            a = relu1(conv1(x))
+            a = relu2(conv2(a))
+            a_flatten = flatten(a)
+            dist = softmax(linear(a_flatten))
+
+            # backward
+            labels = np.zeros(dist.shape)
+            labels[:, 1] = 1
+            loss = -np.log(np.sum(dist * labels, axis=1))
+
+            softmax_grad = softmax.backward(labels)
+            linear_grad = linear.backward(softmax_grad)
+            flatten_grad = flatten.backward(linear_grad)
+            relu2_grad = relu2.backward(flatten_grad)
+            conv2_grad = conv2.backward(relu2_grad)
+            relu1_grad = relu1.backward(conv2_grad)
+            conv1_grad = conv1.backward(relu1_grad)
+
+            return loss, conv1_grad
+
+        self.gradient_checker_batch_input(conv_layer, x_, min_diff=1e-3)
+
+    def test_max_pooling(self):
+        x = np.array([[[[ 1, -1],
+         [-1,  2]]],
+       [[[ 1,  0],
+         [ 3,  1]]],
+       [[[-1,  3],
+         [ 1,  0]]]])
+
+        expected_res = np.array([[[[2]]], [[[3]]], [[[3]]]])
+        expected_idxs = np.array([3, 2, 1])
+        a, max_idx = util_functions.max_pool2d(x, kernel_size=2, stride=1)
+        np.testing.assert_allclose(a, expected_res, atol=0.0001)
+        np.testing.assert_allclose(max_idx, expected_idxs, atol=1e-4)
+
 
 if __name__ == '__main__':
     unittest.main()

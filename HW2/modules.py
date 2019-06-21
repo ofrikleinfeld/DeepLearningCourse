@@ -77,16 +77,34 @@ class Conv2d(NetworkModuleWithParams):
         return self.layer_output
 
     def backward(self, next_layer_grad):
-        # self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
         self.b_grad = np.sum(next_layer_grad, axis=(2, 3))
 
-        D, C, h, w = self.weights.shape
+        N, C, H, W = self.layer_input.shape
+        D, _, h, w = self.weights.shape
+
         next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
-        self.w_grad = (next_layer_grad_reshaped @ self.x_cols.T).reshape(self.weights.shape)
+        # self.w_grad = (next_layer_grad_reshaped @ self.x_cols.T).reshape(self.weights.shape)
 
         dx_cols = self.weights.reshape(D, -1).T @ next_layer_grad_reshaped
         self.layer_grad = util_functions.col2im_indices(dx_cols, self.layer_input.shape, h, w, self.padding, self.stride)
 
+        w_grad = np.zeros((N, D, C, h, w))
+        for n in range(N):
+            for d in range(D):
+                for c in range(C):
+                    layer_grad = next_layer_grad[n, d, :, :]
+                    layer_grad_h, layer_grad_w = layer_grad.shape
+                    layer_grad = layer_grad.reshape(1, 1, layer_grad_h, layer_grad_w)
+
+                    layer_input = self.layer_input[n, c, :, :]
+                    layer_input_h, layer_input_w = layer_input.shape
+                    layer_input = layer_input.reshape(1, 1, layer_input_h, layer_input_w)
+
+                    biases = np.zeros(1)
+                    filter_grad, _ = util_functions.conv2d(layer_input, layer_grad, biases, stride=self.stride, padding=self.padding)
+                    w_grad[n, d, c, :, :] = filter_grad
+
+        self.w_grad = w_grad
         return self.layer_grad
 
 

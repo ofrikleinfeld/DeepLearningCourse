@@ -16,8 +16,8 @@ if __name__ == '__main__':
     train_data, train_labels, validation_data, validation_labels = load_data.load_training_validation_data(
                                                                     "data/training_validation_normalized.pkl.gz")
 
-    # train_data = train_data.reshape(-1, 3, 32, 32)
-    train_data = train_data.reshape(-1, 3072)
+    train_data = train_data.reshape(-1, 3, 32, 32)
+    # train_data = train_data.reshape(-1, 3072)
     train_data = train_data[:4000]
     train_length = len(train_data)
     # validation_data = validation_data.reshape(-1, 3, 32, 32)
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     # validation_data = validation_data[:1000]
     # valid_length = len(validation_data)
 
-    model = networks.FullyConnected()
+    model = networks.SmallCNN()
     optimizer = optimizers.SGDOptimizer(model, lr=0.01)
     num_epochs = 10
     batch_size = 32

@@ -51,37 +51,34 @@ def linear(input_, weights, biases):
     return input_ @ weights_transposed + biases_shaped
 
 
-# def max_pool2d(input_, kernel_size=2):
-#     """ Implements a 2-D max pooling operation.
-#     No ability here to control the stride - it will always be identical to kernel size
-#     Arguments:
-#     inputs -- an input signal with the dimensions of N X C X H X W
-#          N is the batch size, C is number of channels, and H and W
-#          are the input height and width
-#     kernel_size -- max pooling spatial area (both width and height)
-#     """
-#     def ceil_(x, y):
-#         return int(np.ceil(x/y))
-#
-#     N, C, H, W = input_.shape
-#
-#     if H % kernel_size != 0 or W % kernel_size != 0:
-#         h_out = ceil_(H, kernel_size)
-#         w_out = ceil_(W, kernel_size)
-#         size = (N, C, h_out * kernel_size, w_out * kernel_size)
-#         input_padded = np.full(size, -np.inf)
-#         input_padded[..., :H, :W] = input_
-#         input_shaped = input_padded.reshape(N, C, h_out, kernel_size, w_out, kernel_size)
-#
-#     else:
-#         h_out = H // kernel_size
-#         w_out = W // kernel_size
-#         input_shaped = input_.reshape(N, C, h_out, kernel_size, w_out, kernel_size)
-#
-#     res = input_shaped.max(axis=(3, 5))
-#     return res
-#
-#
+def max_pool2d(x, kernel_size=2, stride=1):
+    """ Implements a 2-D max pooling operation.
+    No ability here to control the stride - it will always be identical to kernel size
+    Arguments:
+    inputs -- an input signal with the dimensions of N X C X H X W
+         N is the batch size, C is number of channels, and H and W
+         are the input height and width
+    kernel_size -- max pooling spatial area (both width and height)
+    """
+
+    N, C, H, W = x.shape
+    H_out = (H - kernel_size) / stride + 1
+    W_out = (W - kernel_size) / stride + 1
+
+    if not (H_out.is_integer() and W_out.is_integer()):
+        raise ValueError('Invalid output dimension!')
+
+    H_out = int(H_out)
+    W_out = int(W_out)
+
+    x_reshaped = x.reshape(N * C, 1, H, W)
+    x_col = im2col_indices(x_reshaped, kernel_size, kernel_size, padding=0, stride=stride)
+    max_idx = np.argmax(x_col, axis=0)
+    out = x_col[max_idx, range(max_idx.size)]
+
+    out_reshaped = out.reshape(H_out, W_out, N, C).transpose(2, 3, 0, 1)
+    return out_reshaped, max_idx
+
 
 def get_im2col_indices(x_shape, field_height, field_width, padding=1, stride=1):
     # First figure out what the size of the output should be
