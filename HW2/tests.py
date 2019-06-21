@@ -687,7 +687,6 @@ class UtilsTests(unittest.TestCase):
 
         self.gradient_checker_weights(linear_layer, w_)
 
-
     def test_gradient_linear_wrt_biases(self):
 
         z = np.array([[1, 3, 0], [1, 2, -1], [1, 2, 4], [1, 2, -3], [1, 2, -2], [1, 2, 1]])
@@ -719,6 +718,67 @@ class UtilsTests(unittest.TestCase):
             return loss, b_grad
 
         self.gradient_checker_weights(linear_layer, b_)
+
+    def test_gradient_conv_wrt_biases(self):
+
+        x = np.array([  # shape 6x1x3x3
+            [[[-1, 1, 1],
+              [1, 1, 0],
+              [-1, 0, 1]]],
+            [[[-1, 0, 1],
+              [0, -1, 0],
+              [1, 1, -1]]],
+            [[[1, 1, -1],
+              [0, 1, -1],
+              [-1, -1, 1]]],
+            [[[1, 1, 1],
+              [-1, -1, 0],
+              [0, 1, 1]]],
+            [[[-1, 0, -1],
+              [0, 1, -1],
+              [1, 1, 0]]],
+            [[[0, 0, 0],
+              [-1, -1, 1],
+              [0, -1, -1]]]
+        ])
+
+        b_ = np.array([0.5, 2, 0])
+
+        def conv(b):
+            """
+            the derivative check in the gradient checker relates to the input of the function
+            hence, the input should be z - since the backward step computes @loss / @z
+            """
+
+            # simulate end of classification
+            conv = nn.Conv2d(in_channels=1, out_channels=3, kernel_size=2)
+            relu = nn.Relu()
+            flatten = nn.Flatten()
+            linear = nn.Linear(in_dimension=12, out_dimension=4)
+            softmax = nn.Softmax()
+
+            conv.set_biases(b)
+
+            # forward
+            a = flatten(relu(conv(x)))
+            dist = softmax(linear(a))
+
+            # backward
+            labels = np.zeros(dist.shape)
+            labels[:, 1] = 1
+            loss = -np.log(np.sum(dist * labels, axis=1))
+
+            softmax_grad = softmax.backward(labels)
+            linear_grad = linear.backward(softmax_grad)
+            flatten_grad = flatten.backward(linear_grad)
+            relu_grad = relu.backward(flatten_grad)
+            conv_grad = conv.backward(relu_grad)
+
+            b_grad = conv.b_grad
+
+            return loss, b_grad
+
+        self.gradient_checker_weights(conv, b_, min_diff=1e-3)
 
 
 if __name__ == '__main__':
