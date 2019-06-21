@@ -81,6 +81,45 @@ class UtilsTests(unittest.TestCase):
 
                 it.iternext()  # Step to next dimension
 
+    def gradient_checker_weights(self, f, w, min_diff=1e-5):
+        """ Gradient check for a function f.
+        Arguments:
+        f -- a function that takes a single numpy array and outputs the
+             the loss and the the gradients with regards to this numpy array
+        w -- the weights (numpy array) to check the gradient for
+        """
+        random_state = np.random.get_state()
+        np.random.set_state(random_state)
+        loss, grad = f(w)  # Evaluate function value at with some weights vector
+        h = 1e-4  # a small value, epsilon
+
+        for i in range(len(loss)):
+            # Iterate over all indexes ix in x to check the gradient.
+            it = np.nditer(w, flags=['multi_index'], op_flags=['readwrite'])
+            while not it.finished:
+                iw = it.multi_index
+
+                # Modifying w[iw] with h defined above to compute numerical gradients
+                eps = np.zeros(w.shape)
+                eps[iw] = h
+
+                np.random.set_state(random_state)
+                loss_plus_eps = f(w + eps)[0]
+
+                np.random.set_state(random_state)
+                loss_minus_eps = f(w - eps)[0]
+
+                numeric_gradient = (loss_plus_eps - loss_minus_eps) / (2 * h)
+
+                # Compare gradients
+                current_grad = grad[i][iw]
+                current_numeric_grad = numeric_gradient[i]
+
+                gradients_diff = abs(current_numeric_grad - current_grad) / max(1, abs(current_numeric_grad), abs(current_grad))
+                self.assertLessEqual(gradients_diff, min_diff)
+
+                it.iternext()  # Step to next dimension
+
     def test_softmax_1(self):
         input = np.array([[2, 3, 5, 1, 7], [4, 3, 0, 5, 5], [-1, 2, 0, -3, -4]])
         output = np.array([[0.00579425, 0.01575041, 0.11638064, 0.00213159, 0.85994311],
@@ -615,6 +654,71 @@ class UtilsTests(unittest.TestCase):
             return loss, conv1_grad
 
         self.gradient_checker_batch_input(conv_layer, x_, min_diff=1e-3)
+
+    def test_gradient_linear_wrt_weights(self):
+
+        z = np.array([[1, 3, 0], [1, 2, -1], [1, 2, 4], [1, 2, -3], [1, 2, -2], [1, 2, 1]])
+        w_ = np.array([[2, 0, 2], [1, 2, 2]])
+
+        def linear_layer(w):
+            """
+            the derivative check in the gradient checker relates to the input of the function
+            hence, the input should be z - since the backward step computes @loss / @z
+            """
+
+            # simulate end of classification
+            linear = nn.Linear(in_dimension=3, out_dimension=2)
+            linear.set_weights(w)
+            softmax = nn.Softmax()
+
+            # forward
+            dist = softmax(linear(z))
+
+            # backward
+            labels = np.zeros(dist.shape)
+            labels[:, 1] = 1
+            loss = -np.log(np.sum(dist * labels, axis=1))
+
+            softmax_grad = softmax.backward(labels)
+            linear_grad = linear.backward(softmax_grad)
+            w_grad = linear.w_grad
+
+            return loss, w_grad
+
+        self.gradient_checker_weights(linear_layer, w_)
+
+
+    def test_gradient_linear_wrt_biases(self):
+
+        z = np.array([[1, 3, 0], [1, 2, -1], [1, 2, 4], [1, 2, -3], [1, 2, -2], [1, 2, 1]])
+        b_ = np.array([2, 0])
+
+        def linear_layer(b):
+            """
+            the derivative check in the gradient checker relates to the input of the function
+            hence, the input should be z - since the backward step computes @loss / @z
+            """
+
+            # simulate end of classification
+            linear = nn.Linear(in_dimension=3, out_dimension=2)
+            linear.set_biases(b)
+            softmax = nn.Softmax()
+
+            # forward
+            dist = softmax(linear(z))
+
+            # backward
+            labels = np.zeros(dist.shape)
+            labels[:, 1] = 1
+            loss = -np.log(np.sum(dist * labels, axis=1))
+
+            softmax_grad = softmax.backward(labels)
+            linear_grad = linear.backward(softmax_grad)
+            b_grad = linear.b_grad
+
+            return loss, b_grad
+
+        self.gradient_checker_weights(linear_layer, b_)
 
 
 if __name__ == '__main__':
