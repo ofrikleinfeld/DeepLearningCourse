@@ -76,18 +76,18 @@ class Conv2d(NetworkModuleWithParams):
         self.layer_output, self.x_cols = util_functions.conv2d(input_, self.weights, self.biases, self.stride)
         return self.layer_output
 
-    # def backward(self, next_layer_grad):
-    #     # self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
-    #     self.b_grad = np.sum(next_layer_grad, axis=(2, 3))
-    #
-    #     D, C, h, w = self.weights.shape
-    #     next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
-    #     self.w_grad = (next_layer_grad_reshaped @ self.x_cols.T).reshape(self.weights.shape)
-    #
-    #     dx_cols = self.weights.reshape(D, -1).T @ next_layer_grad_reshaped
-    #     self.layer_grad = util_functions.col2im_indices(dx_cols, self.a_minus_1.shape, h, w, self.padding, self.stride)
-    #
-    #     return self.layer_grad
+    def backward(self, next_layer_grad):
+        # self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
+        self.b_grad = np.sum(next_layer_grad, axis=(2, 3))
+
+        D, C, h, w = self.weights.shape
+        next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
+        self.w_grad = (next_layer_grad_reshaped @ self.x_cols.T).reshape(self.weights.shape)
+
+        dx_cols = self.weights.reshape(D, -1).T @ next_layer_grad_reshaped
+        self.layer_grad = util_functions.col2im_indices(dx_cols, self.layer_input.shape, h, w, self.padding, self.stride)
+
+        return self.layer_grad
 
 
 class Linear(NetworkModuleWithParams):
@@ -107,16 +107,11 @@ class Linear(NetworkModuleWithParams):
 
     def backward(self, next_layer_grad):
         self.layer_grad = next_layer_grad @ self.weights
+
         batch_size, _ = self.layer_grad.shape
-        try:
-            self.w_grad = next_layer_grad.reshape(batch_size, -1, 1) @ self.layer_input.reshape(batch_size, 1, -1)
-            self.b_grad = next_layer_grad
-            return self.layer_grad
-        except ValueError:
-            print(next_layer_grad.shape)
-            print(next_layer_grad.reshape(batch_size, -1, 1))
-            print(self.layer_input.shape)
-            print(self.layer_input.reshape(batch_size, 1, -1))
+        self.w_grad = next_layer_grad.reshape(batch_size, -1, 1) @ self.layer_input.reshape(batch_size, 1, -1)
+        self.b_grad = next_layer_grad
+        return self.layer_grad
 
 
 class Relu(NetworkModule):
@@ -156,19 +151,18 @@ class Sigmoid(NetworkModule):
         return self.layer_grad
 
 
-# class Flatten(NetworkModule):
-#
-#     def __call__(self, z):
-#         self.z = z
-#         batch_size = z.shape[0]
-#         self.a = np.reshape(z, (batch_size, -1))
-#         return self.a
-#
-#     def backward(self, next_layer_weights, next_layer_grad):
-#         layer_grad_flatten = next_layer_grad @ next_layer_weights
-#         N, C, H, W = self.z.shape
-#         self.layer_grad = np.reshape(layer_grad_flatten, (N, C, H, W))
-#         return self.layer_grad
+class Flatten(NetworkModule):
+
+    def __call__(self, x):
+        self.layer_input = x
+        batch_size = x.shape[0]
+        self.layer_output = np.reshape(x, (batch_size, -1))
+        return self.layer_output
+
+    def backward(self, next_layer_grad):
+        N, C, H, W = self.layer_input.shape
+        self.layer_grad = np.reshape(next_layer_grad, (N, C, H, W))
+        return self.layer_grad
 
 
 class Dropout(NetworkModule):
@@ -180,10 +174,9 @@ class Dropout(NetworkModule):
         self.dropout_mask = None
 
     def get_mask(self, shape):
-        if self.dropout_mask is None:
-            drop_probabilities = np.random.rand(*shape)
-            drop_mask = np.where(drop_probabilities <= self.rate, 0, 1)
-            self.dropout_mask = drop_mask.reshape(shape)
+        drop_probabilities = np.random.rand(*shape)
+        drop_mask = np.where(drop_probabilities <= self.rate, 0, 1)
+        self.dropout_mask = drop_mask.reshape(shape)
 
         return self.dropout_mask
 
@@ -191,8 +184,8 @@ class Dropout(NetworkModule):
         self.layer_input = z
 
         if self.mode == 'train':
-            self.dropout_mask = self.get_mask(z.shape)
-            self.layer_output = z * self.dropout_mask
+            self.dropout_mask = self.get_mask(self.layer_input.shape)
+            self.layer_output = self.layer_input * self.dropout_mask
 
         else:
             self.layer_output = self.layer_input * (1 - self.rate)
