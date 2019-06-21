@@ -68,9 +68,8 @@ class Conv2d(NetworkModuleWithParams):
         self.a_minus_1 = None
 
     def init_weights(self, in_channels, out_channels, kernel_size):
-        # xavier initialization
-        self.weights = np.random.normal(size=(out_channels, in_channels, kernel_size, kernel_size))
-        self.biases = np.random.normal(loc=0, scale=in_channels, size=out_channels)
+        self.weights = np.random.normal(loc=0, scale=1, size=(out_channels, in_channels, kernel_size, kernel_size))
+        self.biases = np.random.normal(loc=0, scale=1, size=out_channels)
 
     def __call__(self, input_):
         self.a_minus_1 = input_
@@ -78,7 +77,8 @@ class Conv2d(NetworkModuleWithParams):
         return self.z
 
     def backward(self, next_layer_grad):
-        self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
+        # self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
+        self.b_grad = np.sum(next_layer_grad, axis=(2, 3))
 
         D, C, h, w = self.weights.shape
         next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
@@ -98,8 +98,8 @@ class Linear(NetworkModuleWithParams):
         self.a_minus_1 = None
 
     def init_weights(self, in_dimension, out_dimension):
-        # xavier initialization
-        self.xavier_initialization(in_dimension=in_dimension, out_dimension=out_dimension)
+        self.weights = np.random.normal(loc=0, scale=1, size=(out_dimension, in_dimension))
+        self.biases = np.random.normal(loc=0, scale=1, size=out_dimension)
 
     def __call__(self, input_):
         self.a_minus_1 = input_

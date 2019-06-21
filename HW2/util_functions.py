@@ -25,6 +25,9 @@ def relu_derivative(x):
 
 
 def sigmoid(x):
+    # b = np.max(x, axis=0)[:, np.newaxis]
+    # y = np.exp(x - b)
+    # return y / np.sum(y, axis=1)[:, np.newaxis]
     z = np.where(x >= 0, 1 / (1 + np.exp(-x)), np.exp(x) / (1 + np.exp(x)))
     return z
 

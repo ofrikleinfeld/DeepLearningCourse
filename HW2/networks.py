@@ -56,4 +56,57 @@ class CNN(object):
         conv1_grad = self.conv1.backward(conv2_grad)
 
 
+class Small_CNN(object):
 
+    def __init__(self):
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=6, kernel_size=3, stride=1)
+        self.relu1 = nn.Relu()
+        self.conv2 = nn.Conv2d(in_channels=6, out_channels=10, kernel_size=3, stride=3)
+        self.relu2 = nn.Relu()
+        self.flatten = nn.Flatten()
+        self.linear1 = nn.Linear(in_dimension=1000, out_dimension=200)
+        self.relu3 = nn.Relu()
+        self.linear_softmax = nn.LinearWithSoftmax(in_dimension=200, out_dimension=10)
+        self.layers = [self.conv1, self.relu1,
+                       self.conv2, self.relu2, self.flatten,
+                       self.linear1, self.relu3, self.linear_softmax
+                       ]
+
+    def __call__(self, x):
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.conv2(x)
+        x = self.relu2(x)
+        x = self.flatten(x)
+        x = self.linear1(x)
+        x = self.relu3(x)
+        x = self.linear_softmax(x)
+
+        return x
+
+    def backward(self, labels):
+        layer_L_grad = self.linear_softmax.backward(labels)
+        linear1_grad = self.linear1.backward(self.linear_softmax.weights, layer_L_grad) * self.relu3.backward()
+        flatten_grad = self.flatten.backward(self.linear1.weights, linear1_grad) * self.relu2.backward()
+        conv2_grad = self.conv2.backward(flatten_grad) * self.relu1.backward()
+        conv1_grad = self.conv1.backward(conv2_grad)
+
+
+class FullyConnected(object):
+
+    def __init__(self):
+        self.linear1 = nn.Linear(in_dimension=3072, out_dimension=600)
+        self.relu = nn.Relu()
+        self.linear_softmax = nn.LinearWithSoftmax(in_dimension=600, out_dimension=10)
+        self.layers = [self.linear1, self.relu, self.linear_softmax]
+
+    def __call__(self, x):
+        x = self.linear1(x)
+        x = self.relu(x)
+        x = self.linear_softmax(x)
+
+        return x
+
+    def backward(self, labels):
+        layer_L_grad = self.linear_softmax.backward(labels)
+        linear1_grad = self.linear1.backward(self.linear_softmax.weights, layer_L_grad) * self.relu.backward()
