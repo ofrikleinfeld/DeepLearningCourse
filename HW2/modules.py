@@ -5,14 +5,14 @@ import HW2.util_functions as util_functions
 class NetworkModule(object):
 
     def __init__(self):
-        self.z = None
-        self.a = None
+        self.layer_input = None
+        self.layer_output = None
         self.layer_grad = None
 
     def __call__(self, input_):
         raise NotImplementedError("Sub class must implement forward pass")
 
-    def backward(self, *args):
+    def backward(self, next_layer_grad):
         raise NotImplementedError("Sub class must implement backward pass")
 
 
@@ -72,22 +72,22 @@ class Conv2d(NetworkModuleWithParams):
         self.biases = np.random.normal(loc=0, scale=1, size=out_channels)
 
     def __call__(self, input_):
-        self.a_minus_1 = input_
-        self.z, self.x_cols = util_functions.conv2d(input_, self.weights, self.biases, self.stride)
-        return self.z
+        self.layer_input = input_
+        self.layer_output, self.x_cols = util_functions.conv2d(input_, self.weights, self.biases, self.stride)
+        return self.layer_output
 
-    def backward(self, next_layer_grad):
-        # self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
-        self.b_grad = np.sum(next_layer_grad, axis=(2, 3))
-
-        D, C, h, w = self.weights.shape
-        next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
-        self.w_grad = (next_layer_grad_reshaped @ self.x_cols.T).reshape(self.weights.shape)
-
-        dx_cols = self.weights.reshape(D, -1).T @ next_layer_grad_reshaped
-        self.layer_grad = util_functions.col2im_indices(dx_cols, self.a_minus_1.shape, h, w, self.padding, self.stride)
-
-        return self.layer_grad
+    # def backward(self, next_layer_grad):
+    #     # self.b_grad = np.sum(next_layer_grad, axis=(0, 2, 3))
+    #     self.b_grad = np.sum(next_layer_grad, axis=(2, 3))
+    #
+    #     D, C, h, w = self.weights.shape
+    #     next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
+    #     self.w_grad = (next_layer_grad_reshaped @ self.x_cols.T).reshape(self.weights.shape)
+    #
+    #     dx_cols = self.weights.reshape(D, -1).T @ next_layer_grad_reshaped
+    #     self.layer_grad = util_functions.col2im_indices(dx_cols, self.a_minus_1.shape, h, w, self.padding, self.stride)
+    #
+    #     return self.layer_grad
 
 
 class Linear(NetworkModuleWithParams):
@@ -95,103 +95,80 @@ class Linear(NetworkModuleWithParams):
     def __init__(self, in_dimension, out_dimension):
         super(Linear, self).__init__()
         self.init_weights(in_dimension, out_dimension)
-        self.a_minus_1 = None
 
     def init_weights(self, in_dimension, out_dimension):
         self.weights = np.random.normal(loc=0, scale=1, size=(out_dimension, in_dimension))
         self.biases = np.random.normal(loc=0, scale=1, size=out_dimension)
 
     def __call__(self, input_):
-        self.a_minus_1 = input_
-        self.z = util_functions.linear(input_, self.weights, self.biases)
-        return self.z
+        self.layer_input = input_
+        self.layer_output = util_functions.linear(input_, self.weights, self.biases)
+        return self.layer_output
 
-    def backward(self, next_layer_weights, next_layer_grad):
-        self.layer_grad = next_layer_grad @ next_layer_weights
-        batch_size, feature_size = self.layer_grad.shape
-        _, prev_layer_feature_size = self.a_minus_1.shape
-        self.w_grad = self.layer_grad.reshape(batch_size, feature_size, 1) @ self.a_minus_1.reshape(batch_size, 1, prev_layer_feature_size)
-        self.b_grad = self.layer_grad
-        return self.layer_grad
-
-
-class LinearWithSoftmax(NetworkModuleWithParams):
-
-    def __init__(self, in_dimension, out_dimension):
-        super(LinearWithSoftmax, self).__init__()
-        self.init_weights(in_dimension, out_dimension)
-        self.a_minus_1 = None
-        self.softmax = Softmax()
-
-    def init_weights(self, in_dimension, out_dimension):
-        # xavier initialization
-        self.xavier_initialization(in_dimension=in_dimension, out_dimension=out_dimension)
-
-    def __call__(self, input_):
-        self.a_minus_1 = input_
-        self.z = util_functions.linear(input_, self.weights, self.biases)
-        self.a = self.softmax(self.z)
-        return self.a
-
-    def backward(self, labels):
-        self.layer_grad = self.softmax.backward(labels)
-        batch_size, feature_size = self.layer_grad.shape
-        _, prev_layer_feature_size = self.a_minus_1.shape
-        self.w_grad = self.layer_grad.reshape(batch_size, feature_size, 1) @ self.a_minus_1.reshape(batch_size, 1, prev_layer_feature_size)
-        self.b_grad = self.layer_grad
-        return self.layer_grad
+    def backward(self, next_layer_grad):
+        self.layer_grad = next_layer_grad @ self.weights
+        batch_size, _ = self.layer_grad.shape
+        try:
+            self.w_grad = next_layer_grad.reshape(batch_size, -1, 1) @ self.layer_input.reshape(batch_size, 1, -1)
+            self.b_grad = next_layer_grad
+            return self.layer_grad
+        except ValueError:
+            print(next_layer_grad.shape)
+            print(next_layer_grad.reshape(batch_size, -1, 1))
+            print(self.layer_input.shape)
+            print(self.layer_input.reshape(batch_size, 1, -1))
 
 
 class Relu(NetworkModule):
 
     def __call__(self, z):
-        self.z = z
-        self.a = util_functions.relu(z)
-        return self.a
+        self.layer_input = z
+        self.layer_output = util_functions.relu(z)
+        return self.layer_output
 
-    def backward(self):
-        self.layer_grad = util_functions.relu_derivative(self.z)
+    def backward(self, next_layer_gard):
+        self.layer_grad = next_layer_gard * util_functions.relu_derivative(self.layer_input)
         return self.layer_grad
 
 
 class Softmax(NetworkModule):
 
     def __call__(self, z):
-        self.z = z
-        self.a = util_functions.softmax(z)
-        return self.a
+        self.layer_input = z
+        self.layer_output = util_functions.softmax(z)
+        return self.layer_output
 
     def backward(self, label):
         # assuming cross entropy loss
-        self.layer_grad = self.a - label
+        self.layer_grad = self.layer_output - label
         return self.layer_grad
 
 
 class Sigmoid(NetworkModule):
 
     def __call__(self, z):
-        self.z = z
-        self.a = util_functions.sigmoid(z)
-        return self.a
+        self.layer_input = z
+        self.layer_output = util_functions.sigmoid(z)
+        return self.layer_output
 
-    def backward(self):
-        self.layer_grad = util_functions.sigmoid_derivative(self.z)
+    def backward(self, next_layer_grad):
+        self.layer_grad = next_layer_grad * util_functions.sigmoid_derivative(self.layer_input)
         return self.layer_grad
 
 
-class Flatten(NetworkModule):
-
-    def __call__(self, z):
-        self.z = z
-        batch_size = z.shape[0]
-        self.a = np.reshape(z, (batch_size, -1))
-        return self.a
-
-    def backward(self, next_layer_weights, next_layer_grad):
-        layer_grad_flatten = next_layer_grad @ next_layer_weights
-        N, C, H, W = self.z.shape
-        self.layer_grad = np.reshape(layer_grad_flatten, (N, C, H, W))
-        return self.layer_grad
+# class Flatten(NetworkModule):
+#
+#     def __call__(self, z):
+#         self.z = z
+#         batch_size = z.shape[0]
+#         self.a = np.reshape(z, (batch_size, -1))
+#         return self.a
+#
+#     def backward(self, next_layer_weights, next_layer_grad):
+#         layer_grad_flatten = next_layer_grad @ next_layer_weights
+#         N, C, H, W = self.z.shape
+#         self.layer_grad = np.reshape(layer_grad_flatten, (N, C, H, W))
+#         return self.layer_grad
 
 
 class Dropout(NetworkModule):
@@ -202,23 +179,26 @@ class Dropout(NetworkModule):
         self.mode = mode
         self.dropout_mask = None
 
-    def __draw_dropout_layer(self, shape):
-        drop_probabilities = np.random.rand(*shape)
-        drop_mask = np.where(drop_probabilities <= self.rate, 0, 1)
-        return drop_mask
+    def get_mask(self, shape):
+        if self.dropout_mask is None:
+            drop_probabilities = np.random.rand(*shape)
+            drop_mask = np.where(drop_probabilities <= self.rate, 0, 1)
+            self.dropout_mask = drop_mask.reshape(shape)
+
+        return self.dropout_mask
 
     def __call__(self, z):
-        self.z = z
+        self.layer_input = z
 
         if self.mode == 'train':
-            self.dropout_mask = self.__draw_dropout_layer(z.shape)
-            self.a = self.z * self.dropout_mask
+            self.dropout_mask = self.get_mask(z.shape)
+            self.layer_output = z * self.dropout_mask
 
         else:
-            self.a = self.z * (1 - self.rate)
+            self.layer_output = self.layer_input * (1 - self.rate)
 
-        return self.a
+        return self.layer_output
 
-    def backward(self, next_layer_weights, next_layer_grad):
-        self.layer_grad = next_layer_grad @ next_layer_weights * self.dropout_mask
+    def backward(self, next_layer_grad):
+        self.layer_grad = next_layer_grad * self.dropout_mask
         return self.layer_grad

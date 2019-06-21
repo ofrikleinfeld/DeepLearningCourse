@@ -96,18 +96,31 @@ class FullyConnected(object):
 
     def __init__(self):
         self.linear1 = nn.Linear(in_dimension=3072, out_dimension=600)
-        self.relu = nn.Relu()
-        self.dropout = nn.Dropout(rate=0.5)
-        self.linear_softmax = nn.LinearWithSoftmax(in_dimension=600, out_dimension=10)
-        self.layers = [self.linear1, self.relu, self.linear_softmax]
+        self.relu1 = nn.Relu()
+        self.dropout1 = nn.Dropout(rate=0.5)
+        self.linear2 = nn.Linear(in_dimension=600, out_dimension=200)
+        self.relu2 = nn.Relu()
+        self.dropout2 = nn.Dropout(rate=0.5)
+        self.linear3 = nn.Linear(in_dimension=200, out_dimension=10)
+        self.softmax = nn.Softmax()
+        self.layers = [self.linear1, self.relu1, self.dropout1,
+                       self.linear2, self.relu2, self.dropout2,
+                       self.linear3, self.softmax]
 
     def __call__(self, x):
-        x = self.linear1(x)
-        x = self.relu(x)
-        x = self.dropout(x)
-        x = self.linear_softmax(x)
+        x = self.dropout1(self.relu1(self.linear1(x)))
+        x = self.dropout2(self.relu2(self.linear2(x)))
+        x = self.softmax(self.linear3(x))
 
         return x
 
     def backward(self, labels):
-        pass
+        softmax_grad = self.softmax.backward(labels)
+        linear3_grad = self.linear3.backward(softmax_grad)
+        dropout2_grad = self.dropout2.backward(linear3_grad)
+        relu2_grad = self.relu2.backward(dropout2_grad)
+        linear2_grad = self.linear2.backward(relu2_grad)
+        dropout1_grad = self.dropout1.backward(linear2_grad)
+        relu1_grad = self.relu1.backward(dropout1_grad)
+        linear1_grad = self.linear1.backward(relu1_grad)
+
