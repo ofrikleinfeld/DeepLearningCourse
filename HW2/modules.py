@@ -200,25 +200,25 @@ class Dropout(NetworkModule):
         super(Dropout, self).__init__()
         self.rate = rate
         self.mode = mode
-        self.dropout_layer = None
+        self.dropout_mask = None
 
     def __draw_dropout_layer(self, shape):
         drop_probabilities = np.random.rand(*shape)
-        dropout_layer = np.where(drop_probabilities <= self.rate, 0, 1)
-        return dropout_layer
+        drop_mask = np.where(drop_probabilities <= self.rate, 0, 1)
+        return drop_mask
 
     def __call__(self, z):
         self.z = z
 
         if self.mode == 'train':
-            self.dropout_layer = self.__draw_dropout_layer(z.shape)
-            self.a = self.z * self.dropout_layer
+            self.dropout_mask = self.__draw_dropout_layer(z.shape)
+            self.a = self.z * self.dropout_mask
 
         else:
             self.a = self.z * (1 - self.rate)
 
         return self.a
 
-    def backward(self):
-        self.layer_grad = np.ones(self.dropout_layer.shape)
+    def backward(self, next_layer_weights, next_layer_grad):
+        self.layer_grad = next_layer_grad @ next_layer_weights * self.dropout_mask
         return self.layer_grad

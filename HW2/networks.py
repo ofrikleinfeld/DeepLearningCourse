@@ -97,16 +97,17 @@ class FullyConnected(object):
     def __init__(self):
         self.linear1 = nn.Linear(in_dimension=3072, out_dimension=600)
         self.relu = nn.Relu()
+        self.dropout = nn.Dropout(rate=0.5)
         self.linear_softmax = nn.LinearWithSoftmax(in_dimension=600, out_dimension=10)
         self.layers = [self.linear1, self.relu, self.linear_softmax]
 
     def __call__(self, x):
         x = self.linear1(x)
         x = self.relu(x)
+        x = self.dropout(x)
         x = self.linear_softmax(x)
 
         return x
 
     def backward(self, labels):
-        layer_L_grad = self.linear_softmax.backward(labels)
-        linear1_grad = self.linear1.backward(self.linear_softmax.weights, layer_L_grad) * self.relu.backward()
+        pass
