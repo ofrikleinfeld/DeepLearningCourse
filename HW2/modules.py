@@ -65,7 +65,6 @@ class Conv2d(NetworkModuleWithParams):
         self.stride = stride
         self.padding = padding
         self.x_cols = None
-        self.a_minus_1 = None
 
     def init_weights(self, in_channels, out_channels, kernel_size):
         self.weights = np.random.normal(loc=0, scale=1, size=(out_channels, in_channels, kernel_size, kernel_size))
@@ -180,6 +179,36 @@ class Flatten(NetworkModule):
     def backward(self, next_layer_grad):
         N, C, H, W = self.layer_input.shape
         self.layer_grad = np.reshape(next_layer_grad, (N, C, H, W))
+        return self.layer_grad
+
+
+class MaxPool2d(NetworkModule):
+
+    def __init__(self, kernel_size, stride=2):
+        super(MaxPool2d, self).__init__()
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.x_cols = None
+        self.max_idx = None
+
+    def __call__(self, x):
+        self.layer_input = x
+        self.layer_output, self.max_idx, self.x_cols = \
+            util_functions.max_pool2d(x, kernel_size=self.kernel_size, stride=self.stride)
+
+        return self.layer_output
+
+    def backward(self, next_layer_grad):
+        N, C, H, W = self.layer_input.shape
+
+        dx_col = np.zeros_like(self.x_cols)
+        next_layer_grad_col = next_layer_grad.transpose(2, 3, 0, 1).ravel()
+
+        dx_col[self.max_idx, range(next_layer_grad_col.size)] = next_layer_grad_col
+        layer_grad_unshaped = util_functions.col2im_indices(dx_col, (N * C, 1, H, W),
+                                                            self.kernel_size, self.kernel_size, padding=0, stride=self.stride)
+
+        self.layer_grad = layer_grad_unshaped.reshape(self.layer_input.shape)
         return self.layer_grad
 
 

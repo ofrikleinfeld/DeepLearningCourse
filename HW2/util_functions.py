@@ -51,7 +51,7 @@ def linear(input_, weights, biases):
     return input_ @ weights_transposed + biases_shaped
 
 
-def max_pool2d(x, kernel_size=2, stride=1):
+def max_pool2d(x, kernel_size=2, stride=2):
     """ Implements a 2-D max pooling operation.
     No ability here to control the stride - it will always be identical to kernel size
     Arguments:
@@ -77,7 +77,7 @@ def max_pool2d(x, kernel_size=2, stride=1):
     out = x_col[max_idx, range(max_idx.size)]
 
     out_reshaped = out.reshape(H_out, W_out, N, C).transpose(2, 3, 0, 1)
-    return out_reshaped, max_idx
+    return out_reshaped, max_idx, x_col
 
 
 def get_im2col_indices(x_shape, field_height, field_width, padding=1, stride=1):

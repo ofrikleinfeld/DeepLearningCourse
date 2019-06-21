@@ -25,15 +25,15 @@ if __name__ == '__main__':
     # validation_data = validation_data[:1000]
     # valid_length = len(validation_data)
 
-    model = networks.SmallCNN()
+    model = networks.SimpleCNN()
     optimizer = optimizers.SGDOptimizer(model, lr=0.01)
     num_epochs = 10
     batch_size = 32
-    # batch_size = 1
     batch_indices = range(0, round((len(train_data)/batch_size)) * batch_size, batch_size)
 
     for epoch in range(num_epochs):
         epoch_loss = 0
+
         for k in batch_indices:
             x_batch = train_data[k: k + batch_size]
             y_batch = train_labels[k: k + batch_size]
