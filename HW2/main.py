@@ -20,10 +20,9 @@ if __name__ == '__main__':
     # train_data = train_data.reshape(-1, 3072)
     train_data = train_data[:4000]
     train_length = len(train_data)
-    # validation_data = validation_data.reshape(-1, 3, 32, 32)
+    validation_data = validation_data.reshape(-1, 3, 32, 32)
     # validation_data = validation_data.reshape(-1, 3072)
-    # validation_data = validation_data[:1000]
-    # valid_length = len(validation_data)
+    valid_length = len(validation_data)
 
     model = networks.SimpleCNN()
     optimizer = optimizers.SGDOptimizer(model, lr=0.01)
@@ -47,4 +46,41 @@ if __name__ == '__main__':
 
             epoch_loss += loss
 
-        print(f"Epoch {epoch + 1} average loss is: {epoch_loss / train_length}")
+        print(f"Epoch {epoch + 1} - average loss is: {epoch_loss / train_length}")
+
+        # evaluate accuracy on training set
+        num_correct = 0
+        for k in batch_indices:
+            x_batch = train_data[k: k + batch_size]
+            y_batch = train_labels[k: k + batch_size]
+
+            output = model(x_batch)
+            predictions = np.argmax(output, axis=1)
+            correct_labels = np.argmax(y_batch, axis=1)
+            batch_correct_predictions = np.sum(predictions == correct_labels)
+            num_correct += batch_correct_predictions
+
+        print(f"Epoch {epoch + 1} - prediction accuracy on training set is: {num_correct / train_length}")
+
+        # evaluate accuracy on validation
+        # choose randomly 1000 samples from validation set
+        sample_size = 1000
+        random_indices = np.random.choice(valid_length, sample_size)
+        validation_sample = validation_data[random_indices, :, :, :]
+        validation_sample_labels = validation_labels[random_indices]
+
+        # generate batches predict and compare
+        validation_batch_indices = range(0, round((sample_size/batch_size)) * batch_size, batch_size)
+
+        num_correct = 0
+        for k in validation_batch_indices:
+            x_batch = validation_sample[k: k + batch_size]
+            y_batch = validation_sample_labels[k: k + batch_size]
+
+            output = model(x_batch)
+            predictions = np.argmax(output, axis=1)
+            correct_labels = np.argmax(y_batch, axis=1)
+            batch_correct_predictions = np.sum(predictions == correct_labels)
+            num_correct += batch_correct_predictions
+
+        print(f"Epoch {epoch + 1} - prediction accuracy on validation set is: {num_correct / sample_size}")
