@@ -1,5 +1,5 @@
 import numpy as np
-import HW2.util_functions as util_functions
+import util_functions as util_functions
 
 
 class NetworkModule(object):
@@ -14,6 +14,15 @@ class NetworkModule(object):
 
     def backward(self, next_layer_grad):
         raise NotImplementedError("Sub class must implement backward pass")
+
+
+class NetworkModuleWithMode(NetworkModule):
+
+    def __init__(self):
+        super(NetworkModuleWithMode, self).__init__()
+
+    def __call__(self, input_, mode):
+        raise NotImplementedError("Sub class must implement forward pass")
 
 
 class NetworkModuleWithParams(NetworkModule):
@@ -72,7 +81,7 @@ class Conv2d(NetworkModuleWithParams):
 
     def __call__(self, input_):
         self.layer_input = input_
-        self.layer_output, self.x_cols = util_functions.conv2d(input_, self.weights, self.biases, self.stride)
+        self.layer_output, self.x_cols = util_functions.conv2d(input_, self.weights, self.biases, self.stride, self.padding)
         return self.layer_output
 
     def backward(self, next_layer_grad):
@@ -80,29 +89,38 @@ class Conv2d(NetworkModuleWithParams):
 
         N, C, H, W = self.layer_input.shape
         D, _, h, w = self.weights.shape
-
+        N, Dn, hn, wn = next_layer_grad.shape
+        print(next_layer_grad.shape)
+        print(self.weights.shape)
         next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
         # self.w_grad = (next_layer_grad_reshaped @ self.x_cols.T).reshape(self.weights.shape)
 
         dx_cols = self.weights.reshape(D, -1).T @ next_layer_grad_reshaped
         self.layer_grad = util_functions.col2im_indices(dx_cols, self.layer_input.shape, h, w, self.padding, self.stride)
-
-        w_grad = np.zeros((N, D, C, h, w))
-        for n in range(N):
-            for d in range(D):
-                for c in range(C):
-                    layer_grad = next_layer_grad[n, d, :, :]
-                    layer_grad_h, layer_grad_w = layer_grad.shape
-                    layer_grad = layer_grad.reshape(1, 1, layer_grad_h, layer_grad_w)
-
-                    layer_input = self.layer_input[n, c, :, :]
-                    layer_input_h, layer_input_w = layer_input.shape
-                    layer_input = layer_input.reshape(1, 1, layer_input_h, layer_input_w)
-
-                    biases = np.zeros(1)
-                    filter_grad, _ = util_functions.conv2d(layer_input, layer_grad, biases, stride=self.stride, padding=self.padding)
-                    w_grad[n, d, c, :, :] = filter_grad
-
+        h_out = (H - hn + 2 * self.padding) / self.stride + 1
+        w_out = (W - wn + 2 * self.padding) / self.stride + 1
+        w_grad = np.zeros((N, D, C, int(h_out), int(w_out)))
+        biases = np.zeros(N)
+        w_grad, _ = util_functions.conv2d(self.layer_input, next_layer_grad.reshape(next_layer_grad.shape[0]
+                                                                                    ,1,
+                                                                                    next_layer_grad.shape[1],
+                                                                                    next_layer_grad.shape[2],
+                                                                                    next_layer_grad.shape[3]),
+                                               biases, stride=self.stride, padding=self.padding)
+        # for n in range(N):
+        #     for d in range(D):
+        #         layer_grad = next_layer_grad[n, d, :, :]
+        #         layer_grad_h, layer_grad_w = layer_grad.shape
+        #         layer_grad = layer_grad.reshape(1, 1, layer_grad_h, layer_grad_w)
+        #         for c in range(C):
+        #             layer_input = self.layer_input[n, c, :, :]
+        #             layer_input_h, layer_input_w = layer_input.shape
+        #             layer_input = layer_input.reshape(1, 1, layer_input_h, layer_input_w)
+        #             filter_grad, _ = util_functions.conv2d(layer_input, layer_grad,
+        #                                                    biases, stride=self.stride, padding=self.padding)
+        #             w_grad[n, d, c, :, :] = filter_grad
+        print(w_grad.shape)
+        print(self.weights.shape)
         self.w_grad = w_grad
         return self.layer_grad
 
@@ -142,6 +160,29 @@ class Relu(NetworkModule):
         self.layer_grad = next_layer_gard * util_functions.relu_derivative(self.layer_input)
         return self.layer_grad
 
+
+class LeakyRelu(NetworkModule):
+
+    def __call__(self, z):
+        self.layer_input = z
+        self.layer_output = util_functions.leakyrelu(z)
+        return self.layer_output
+
+    def backward(self, next_layer_gard):
+        self.layer_grad = next_layer_gard * util_functions.leakyrelu_derivative(self.layer_input)
+        return self.layer_grad
+
+
+class Tanh(NetworkModule):
+
+    def __call__(self, z):
+        self.layer_input = z
+        self.layer_output = util_functions.tanh(z)
+        return self.layer_output
+
+    def backward(self, next_layer_gard):
+        self.layer_grad = next_layer_gard * util_functions.tanh_derivative(self.layer_input)
+        return self.layer_grad
 
 class Softmax(NetworkModule):
 
@@ -212,12 +253,11 @@ class MaxPool2d(NetworkModule):
         return self.layer_grad
 
 
-class Dropout(NetworkModule):
+class Dropout(NetworkModuleWithMode):
 
-    def __init__(self, rate, mode="train"):
+    def __init__(self, rate):
         super(Dropout, self).__init__()
         self.rate = rate
-        self.mode = mode
         self.dropout_mask = None
 
     def get_mask(self, shape):
@@ -227,10 +267,10 @@ class Dropout(NetworkModule):
 
         return self.dropout_mask
 
-    def __call__(self, z):
+    def __call__(self, z, mode):
         self.layer_input = z
 
-        if self.mode == 'train':
+        if mode == 'train':
             self.dropout_mask = self.get_mask(self.layer_input.shape)
             self.layer_output = self.layer_input * self.dropout_mask
 

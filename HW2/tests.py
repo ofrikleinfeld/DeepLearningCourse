@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
-import HW2.util_functions as util_functions
-import HW2.modules as nn
+import util_functions as util_functions
+import modules as nn
 
 
 class UtilsTests(unittest.TestCase):
