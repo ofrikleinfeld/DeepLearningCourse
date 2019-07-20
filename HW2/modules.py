@@ -60,7 +60,10 @@ class NetworkModuleWithParams(NetworkModule):
         self.weights = new_weights
 
     def set_biases(self, new_biases):
-        self.biases = new_biases
+        if(len(new_biases.shape) != 2):
+            self.biases = new_biases.reshape(new_biases.shape[0], 1)
+        else:
+            self.biases = new_biases
 
 
 class Conv2d(NetworkModuleWithParams):
@@ -74,54 +77,51 @@ class Conv2d(NetworkModuleWithParams):
         self.stride = stride
         self.padding = padding
         self.x_cols = None
+        self.cache = None
 
     def init_weights(self, in_channels, out_channels, kernel_size):
         self.weights = np.random.normal(loc=0, scale=1, size=(out_channels, in_channels, kernel_size, kernel_size))
-        self.biases = np.random.normal(loc=0, scale=1, size=out_channels)
+        self.biases = np.random.normal(loc=0, scale=1, size=(out_channels, 1))
 
     def __call__(self, input_):
         self.layer_input = input_
-        self.layer_output, self.x_cols = util_functions.conv2d(input_, self.weights, self.biases, self.stride, self.padding)
-        return self.layer_output
+        n_filters, d_filter, h_filter, w_filter = self.weights.shape
+        n_x, d_x, h_x, w_x = input_.shape
+        h_out = (h_x - h_filter + 2 * self.padding) / self.stride + 1
+        w_out = (w_x - w_filter + 2 * self.padding) / self.stride + 1
+        if not h_out.is_integer() or not w_out.is_integer():
+            raise Exception('Invalid output dimension!')
+
+        h_out, w_out = int(h_out), int(w_out)
+
+        X_col = util_functions.im2col_indices(input_, h_filter, w_filter, padding=self.padding, stride=self.stride)
+        W_col = self.weights.reshape(n_filters, -1)
+
+        out = W_col @ X_col + self.biases
+        out = out.reshape(n_filters, h_out, w_out, n_x)
+        out = out.transpose(3, 0, 1, 2)
+        self.x_cols = X_col
+        self.cache = (input_, self.weights, self.biases, self.stride, self.padding, X_col)
+
+        return out
 
     def backward(self, next_layer_grad):
-        self.b_grad = np.sum(next_layer_grad, axis=(2, 3))
+        X, W, b, stride, padding, X_col = self.cache
+        n_filter, d_filter, h_filter, w_filter = W.shape
 
-        N, C, H, W = self.layer_input.shape
-        D, _, h, w = self.weights.shape
-        N, Dn, hn, wn = next_layer_grad.shape
-        print(next_layer_grad.shape)
-        print(self.weights.shape)
-        next_layer_grad_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(D, -1)
-        # self.w_grad = (next_layer_grad_reshaped @ self.x_cols.T).reshape(self.weights.shape)
+        db = np.sum(next_layer_grad, axis=(2, 3))
+        db = db.reshape(next_layer_grad.shape[0],n_filter, -1)
 
-        dx_cols = self.weights.reshape(D, -1).T @ next_layer_grad_reshaped
-        self.layer_grad = util_functions.col2im_indices(dx_cols, self.layer_input.shape, h, w, self.padding, self.stride)
-        h_out = (H - hn + 2 * self.padding) / self.stride + 1
-        w_out = (W - wn + 2 * self.padding) / self.stride + 1
-        w_grad = np.zeros((N, D, C, int(h_out), int(w_out)))
-        biases = np.zeros(N)
-        w_grad, _ = util_functions.conv2d(self.layer_input, next_layer_grad.reshape(next_layer_grad.shape[0]
-                                                                                    ,1,
-                                                                                    next_layer_grad.shape[1],
-                                                                                    next_layer_grad.shape[2],
-                                                                                    next_layer_grad.shape[3]),
-                                               biases, stride=self.stride, padding=self.padding)
-        # for n in range(N):
-        #     for d in range(D):
-        #         layer_grad = next_layer_grad[n, d, :, :]
-        #         layer_grad_h, layer_grad_w = layer_grad.shape
-        #         layer_grad = layer_grad.reshape(1, 1, layer_grad_h, layer_grad_w)
-        #         for c in range(C):
-        #             layer_input = self.layer_input[n, c, :, :]
-        #             layer_input_h, layer_input_w = layer_input.shape
-        #             layer_input = layer_input.reshape(1, 1, layer_input_h, layer_input_w)
-        #             filter_grad, _ = util_functions.conv2d(layer_input, layer_grad,
-        #                                                    biases, stride=self.stride, padding=self.padding)
-        #             w_grad[n, d, c, :, :] = filter_grad
-        print(w_grad.shape)
-        print(self.weights.shape)
-        self.w_grad = w_grad
+        dout_reshaped = next_layer_grad.transpose(1, 2, 3, 0).reshape(n_filter, -1)
+        dW = dout_reshaped @ X_col.T
+        dW = dW.reshape(W.shape)
+
+        W_reshape = W.reshape(n_filter, -1)
+        dX_col = W_reshape.T @ dout_reshaped
+        dX = util_functions.col2im_indices(dX_col, X.shape, h_filter, w_filter, padding=padding, stride=stride)
+        self.w_grad = dW
+        self.layer_grad = dX
+        self.b_grad = db
         return self.layer_grad
 
 
@@ -133,7 +133,7 @@ class Linear(NetworkModuleWithParams):
 
     def init_weights(self, in_dimension, out_dimension):
         self.weights = np.random.normal(loc=0, scale=1, size=(out_dimension, in_dimension))
-        self.biases = np.random.normal(loc=0, scale=1, size=out_dimension)
+        self.biases = np.random.normal(loc=0, scale=1, size=(out_dimension, 1))
 
     def __call__(self, input_):
         self.layer_input = input_
@@ -142,10 +142,9 @@ class Linear(NetworkModuleWithParams):
 
     def backward(self, next_layer_grad):
         self.layer_grad = next_layer_grad @ self.weights
-
         batch_size, _ = self.layer_grad.shape
         self.w_grad = next_layer_grad.reshape(batch_size, -1, 1) @ self.layer_input.reshape(batch_size, 1, -1)
-        self.b_grad = next_layer_grad
+        self.b_grad = next_layer_grad.reshape(batch_size, next_layer_grad.shape[1], 1)
         return self.layer_grad
 
 
@@ -278,6 +277,31 @@ class Dropout(NetworkModuleWithMode):
             self.layer_output = self.layer_input * (1 - self.rate)
 
         return self.layer_output
+
+    def backward(self, next_layer_grad):
+        self.layer_grad = next_layer_grad * self.dropout_mask
+        return self.layer_grad
+
+
+class BatchNorm(NetworkModuleWithMode):
+
+    def __init__(self, rate):
+        super(Dropout, self).__init__()
+        self.gamma = None
+        self.beta = None
+        self.cache = None
+
+    def __call__(self, z, mode):
+        mu = np.mean(z, axis=0)
+        var = np.var(z, axis=0)
+
+        X_norm = (z - mu) / np.sqrt(var + 1e-8)
+        out = self.gamma * X_norm + self.beta
+
+        cache = (z, X_norm, mu, var,
+                 self.gamma, self.beta)
+
+        return out, cache, mu, var
 
     def backward(self, next_layer_grad):
         self.layer_grad = next_layer_grad * self.dropout_mask

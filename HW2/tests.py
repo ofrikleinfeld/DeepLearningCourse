@@ -757,7 +757,7 @@ class UtilsTests(unittest.TestCase):
             linear = nn.Linear(in_dimension=12, out_dimension=4)
             softmax = nn.Softmax()
 
-            conv.set_biases(b)
+            conv.set_biases(b.reshape(3, 1))
 
             # forward
             a = flatten(relu(conv(x)))
@@ -802,6 +802,8 @@ class UtilsTests(unittest.TestCase):
          [-1, -1,  1],
          [ 0, -1, -1]]]
         ])
+
+        b_ = np.array([0.5, 2, 0]).reshape(3, 1)
 
         def conv_layer(x):
             """

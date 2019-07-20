@@ -18,17 +18,17 @@ if __name__ == '__main__':
 
     train_data = train_data.reshape(-1, 3, 32, 32)
     #train_data = train_data.reshape(-1, 3072)
-    train_data = train_data[:4000]
-    train_labels = train_labels[:4000]
+    train_data = train_data
+    train_labels = train_labels
     train_length = len(train_data)
     validation_data = validation_data.reshape(-1, 3, 32, 32)
     #validation_data = validation_data.reshape(-1, 3072)
     valid_length = len(validation_data)
 
     model = networks.SimplerCNN()
-    optimizer = optimizers.SGDOptimizer(model, lr=0.001)
-    num_epochs = 10
-    batch_size = 32
+    optimizer = optimizers.SGDOptimizer(model, lr=0.01)
+    num_epochs = 100
+    batch_size = 1
     batch_indices = range(0, round((len(train_data)/batch_size)) * batch_size, batch_size)
 
     for epoch in range(num_epochs):
@@ -40,7 +40,11 @@ if __name__ == '__main__':
             y_batch = train_labels[k: k + batch_size]
 
             output = model(x_batch)
-            loss = np.sum(np.sum(-np.log(output) * y_batch, axis=1))
+            loss_tmp = np.sum(np.sum(-np.log(output) * y_batch, axis=1))
+            if np.isnan(loss_tmp):
+                loss = np.sum(np.sum(-np.log(output+1e-15) * y_batch, axis=1))
+            else:
+                loss = loss_tmp
 
             model.backward(y_batch)
             optimizer.make_step()
@@ -66,7 +70,7 @@ if __name__ == '__main__':
 
         # evaluate accuracy on validation
         # choose randomly 1000 samples from validation set
-        sample_size = 1000
+        sample_size = 10000
         random_indices = np.random.choice(valid_length, sample_size)
         validation_sample = validation_data[random_indices, :]
         validation_sample_labels = validation_labels[random_indices]
