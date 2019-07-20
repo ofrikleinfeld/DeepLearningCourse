@@ -33,3 +33,10 @@ class SGDOptimizer(object):
                 # update the layer weights after SGD step
                 l.set_weights(w)
                 l.set_biases(b)
+            elif isinstance(l, nn.BatchNorm):
+                gamma, beta = l.gamma, l.beta
+                gamma_grad, beta_grad = l.dgamma, l.dbeta
+                gamma -= self.lr * np.mean(gamma_grad, axis=0)
+                beta -= self.lr * np.mean(beta_grad, axis=0)
+                l.set_gamma(gamma)
+                l.set_beta(beta)

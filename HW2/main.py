@@ -26,9 +26,9 @@ if __name__ == '__main__':
     valid_length = len(validation_data)
 
     model = networks.SimplerCNN()
-    optimizer = optimizers.SGDOptimizer(model, lr=0.01)
+    optimizer = optimizers.SGDOptimizer(model, lr=0.1)
     num_epochs = 100
-    batch_size = 1
+    batch_size = 32
     batch_indices = range(0, round((len(train_data)/batch_size)) * batch_size, batch_size)
 
     for epoch in range(num_epochs):

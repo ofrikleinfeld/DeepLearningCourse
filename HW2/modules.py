@@ -285,24 +285,48 @@ class Dropout(NetworkModuleWithMode):
 
 class BatchNorm(NetworkModuleWithMode):
 
-    def __init__(self, rate):
-        super(Dropout, self).__init__()
-        self.gamma = None
-        self.beta = None
+    def __init__(self):
+        super(BatchNorm, self).__init__()
+        self.gamma = np.random.rand()
+        self.beta = np.random.rand()
+        self.dgamma = None
+        self.dbeta = None
         self.cache = None
+        self.layer_grad = None
+        self.bn_mean = 0
+        self.bn_var = 0
 
     def __call__(self, z, mode):
-        mu = np.mean(z, axis=0)
-        var = np.var(z, axis=0)
-
-        X_norm = (z - mu) / np.sqrt(var + 1e-8)
-        out = self.gamma * X_norm + self.beta
-
-        cache = (z, X_norm, mu, var,
-                 self.gamma, self.beta)
-
-        return out, cache, mu, var
+        if mode == 'train':
+            mu = np.mean(z, axis=0)
+            var = np.var(z, axis=0)
+            X_norm = (z - mu) / np.sqrt(var + 1e-8)
+            out = self.gamma * X_norm + self.beta
+            self.cache = (z, X_norm, mu, var,
+                    self.gamma, self.beta)
+            self.bn_mean = 0.9 * self.bn_mean + 0.1 * mu
+            self.bn_var = 0.9 * self.bn_var + 0.1 * var
+        else:
+            out = (z - self.bn_mean) / np.sqrt(self.bn_var + 1e-8)
+            out = self.gamma * out + self.beta
+        return out
 
     def backward(self, next_layer_grad):
-        self.layer_grad = next_layer_grad * self.dropout_mask
+        X, X_norm, mu, var, gamma, beta = self.cache
+        N, D = X.shape
+        X_mu = X - mu
+        std_inv = 1. / np.sqrt(var + 1e-8)
+        dX_norm = next_layer_grad * gamma
+        dvar = np.sum(dX_norm * X_mu, axis=0) * -.5 * std_inv ** 3
+        dmu = np.sum(dX_norm * -std_inv, axis=0) + dvar * np.mean(-2. * X_mu, axis=0)
+        dX = (dX_norm * std_inv) + (dvar * 2 * X_mu / N) + (dmu / N)
+        self.dgamma = np.sum(next_layer_grad * X_norm, axis=0)
+        self.dbeta = np.sum(next_layer_grad, axis=0)
+        self.layer_grad = dX
         return self.layer_grad
+
+    def set_gamma(self, val):
+        self.gamma = val
+
+    def set_beta(self, val):
+        self.beta = val
