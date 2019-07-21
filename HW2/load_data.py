@@ -68,3 +68,10 @@ def shuffle_batch(data, labels):
     assert len(data) == len(labels)
     random_indices = np.random.permutation(len(data))
     return data[random_indices], labels[random_indices]
+
+
+def norm_img(img):
+    img_tmp = img.reshape(3, 32,32)
+    img_tmp = np.array([(samp - samp.mean()) /
+                        (samp.std() + 1e-8) for samp in img_tmp])
+    return img_tmp.reshape(3072)

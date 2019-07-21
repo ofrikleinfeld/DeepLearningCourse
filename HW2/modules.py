@@ -33,6 +33,8 @@ class NetworkModuleWithParams(NetworkModule):
         self.biases = None
         self.w_grad = None
         self.b_grad = None
+        self.vw = 0
+        self.vb = 0
 
     def init_weights(self, *args):
         raise NotImplementedError("Sub class must implement an initialization method for weights")
@@ -64,6 +66,11 @@ class NetworkModuleWithParams(NetworkModule):
             self.biases = new_biases.reshape(new_biases.shape[0], 1)
         else:
             self.biases = new_biases
+    def set_vw(self, new_vw):
+        self.vw = new_vw
+
+    def set_vb(self, new_vb):
+        self.vb = new_vb
 
 
 class Conv2d(NetworkModuleWithParams):
@@ -295,6 +302,8 @@ class BatchNorm(NetworkModuleWithMode):
         self.layer_grad = None
         self.bn_mean = 0
         self.bn_var = 0
+        self.vgamma = 0
+        self.vbeta = 0
 
     def __call__(self, z, mode):
         if mode == 'train':
@@ -320,8 +329,8 @@ class BatchNorm(NetworkModuleWithMode):
         dvar = np.sum(dX_norm * X_mu, axis=0) * -.5 * std_inv ** 3
         dmu = np.sum(dX_norm * -std_inv, axis=0) + dvar * np.mean(-2. * X_mu, axis=0)
         dX = (dX_norm * std_inv) + (dvar * 2 * X_mu / N) + (dmu / N)
-        self.dgamma = np.sum(next_layer_grad * X_norm, axis=0)
-        self.dbeta = np.sum(next_layer_grad, axis=0)
+        self.dgamma = next_layer_grad * X_norm
+        self.dbeta = next_layer_grad
         self.layer_grad = dX
         return self.layer_grad
 
@@ -330,3 +339,9 @@ class BatchNorm(NetworkModuleWithMode):
 
     def set_beta(self, val):
         self.beta = val
+
+    def set_vgamma(self, new_vgamma):
+        self.vgamma = new_vgamma
+
+    def set_vbeta(self, new_vbeta):
+        self.vbeta = new_vbeta

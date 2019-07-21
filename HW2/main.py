@@ -15,7 +15,6 @@ if __name__ == '__main__':
 
     train_data, train_labels, validation_data, validation_labels = load_data.load_training_validation_data(
                                                                     "data/training_validation_normalized.pkl.gz")
-
     train_data = train_data.reshape(-1, 3, 32, 32)
     #train_data = train_data.reshape(-1, 3072)
     train_data = train_data
@@ -26,7 +25,7 @@ if __name__ == '__main__':
     valid_length = len(validation_data)
 
     model = networks.SimplerCNN()
-    optimizer = optimizers.SGDOptimizer(model, lr=0.1)
+    optimizer = optimizers.SGDOptimizer(model, lr=0.03)
     num_epochs = 100
     batch_size = 32
     batch_indices = range(0, round((len(train_data)/batch_size)) * batch_size, batch_size)
@@ -77,7 +76,7 @@ if __name__ == '__main__':
 
         # generate batches predict and compare
         validation_batch_indices = range(0, round((sample_size/batch_size)) * batch_size, batch_size)
-
+        val_epoch_loss = 0
         num_correct = 0
         for k in validation_batch_indices:
             x_batch = validation_sample[k: k + batch_size]
@@ -89,5 +88,12 @@ if __name__ == '__main__':
             batch_correct_predictions = np.sum(predictions
                                                == correct_labels)
             num_correct += batch_correct_predictions
+            loss_tmp = np.sum(np.sum(-np.log(output) * y_batch, axis=1))
+            if np.isnan(loss_tmp):
+                loss = np.sum(np.sum(-np.log(output+1e-15) * y_batch, axis=1))
+            else:
+                loss = loss_tmp
+            val_epoch_loss += loss
         print(num_correct, sample_size)
         print(f"Epoch {epoch + 1} - prediction accuracy on validation set is: {num_correct / sample_size}")
+        print(f"Epoch {epoch + 1} - average validation loss is: {val_epoch_loss / valid_length}")
