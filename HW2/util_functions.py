@@ -19,9 +19,20 @@ def softmax(x):
 def relu(x):
     return np.maximum(x, 0)
 
+def leakyrelu(x):
+    return np.maximum(x, 0.01*x)
+
+def leakyrelu_derivative(x):
+    return np.where(x > 0, 1, 0.01)
+
+def tanh_derivative(x):
+    return (1 - np.tanh(x) ** 2)
+
+def tanh(x):
+    return np.tanh(x)
 
 def relu_derivative(x):
-    return relu(x) / np.abs(x + 1e-5)
+    return (x > 0)
 
 
 def sigmoid(x):
@@ -114,6 +125,39 @@ def im2col_indices(x, field_height, field_width, padding=1, stride=1):
     cols = cols.transpose(1, 2, 0).reshape(field_height * field_width * C, -1)
     return cols
 
+def conv2d_bp(input_, weights, biases, stride=1, padding=0):
+    """ Implements a 2-D convolution operation.
+    Will perform using matrix multiplication operations
+    Arguments:
+    inputs -- an input signal with the dimensions of N X C X H X W
+         N is the batch size, C is number of channels, and H and W
+         are the input height and width
+    weights -- the kernel to perform convolution with. has a dimension of D x h X w
+        where D is number of filters to apply, h and w are the kernel dimensions
+    biases - bias terms. always 1 dimension array of shape D
+    """
+
+    D, C, h, w = weights.shape
+    N, C, H, W = input_.shape
+    h_out = (H - h + 2 * padding) / stride + 1
+    w_out = (W - w + 2 * padding) / stride + 1
+    if not h_out.is_integer() or not w_out.is_integer():
+        raise Exception('Invalid output dimension!')
+
+    h_out, w_out = int(h_out), int(w_out)
+
+    X_col = im2col_indices(input_, h, w, padding=padding, stride=stride)
+    W_col = weights.reshape(D, -1)
+    biases = biases.reshape(D, 1)  # in order to enable broadcasting
+    print(W_col.shape)
+    print(X_col.shape)
+    out = W_col @ X_col + biases
+    out = out.reshape(D, h_out, w_out, N)
+    out = out.transpose(3, 0, 1, 2)
+
+    return out, X_col
+
+
 
 def conv2d(input_, weights, biases, stride=1, padding=0):
     """ Implements a 2-D convolution operation.
@@ -131,7 +175,6 @@ def conv2d(input_, weights, biases, stride=1, padding=0):
     N, C, H, W = input_.shape
     h_out = (H - h + 2 * padding) / stride + 1
     w_out = (W - w + 2 * padding) / stride + 1
-
     if not h_out.is_integer() or not w_out.is_integer():
         raise Exception('Invalid output dimension!')
 
@@ -139,7 +182,6 @@ def conv2d(input_, weights, biases, stride=1, padding=0):
 
     X_col = im2col_indices(input_, h, w, padding=padding, stride=stride)
     W_col = weights.reshape(D, -1)
-
     biases = biases.reshape(D, 1)  # in order to enable broadcasting
     out = W_col @ X_col + biases
     out = out.reshape(D, h_out, w_out, N)
