@@ -53,7 +53,6 @@ class SimpleCNN(NN):
 
 
 class SimplerCNN(NN):
-
     def __init__(self):
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=5, kernel_size=3, stride=3, padding=2)
         self.relu1 = nn.LeakyRelu()

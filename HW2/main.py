@@ -28,7 +28,11 @@ if __name__ == '__main__':
     optimizer = optimizers.SGDOptimizer(model, lr=0.03)
     num_epochs = 100
     batch_size = 32
-    batch_indices = range(0, round((len(train_data)/batch_size)) * batch_size, batch_size)
+
+    validation_sample_size = 1000
+    train_batch_indices = range(0, round((len(train_data) / batch_size)) * batch_size, batch_size)
+    validation_batch_indices = range(0, round((validation_sample_size / batch_size)) * batch_size, batch_size)
+    best_validation_accuracy = 0
 
     for epoch in range(num_epochs):
         epoch_loss = 0
@@ -55,7 +59,7 @@ if __name__ == '__main__':
         model.set_mode('test')
         # evaluate accuracy on training set
         num_correct = 0
-        for k in batch_indices:
+        for k in train_batch_indices:
             x_batch = train_data[k: k + batch_size]
             y_batch = train_labels[k: k + batch_size]
 
