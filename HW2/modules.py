@@ -33,8 +33,8 @@ class NetworkModuleWithParams(NetworkModule):
         self.biases = None
         self.w_grad = None
         self.b_grad = None
-        self.vw = 0
-        self.vb = 0
+        self.vw = None
+        self.vb = None
 
     def init_weights(self, *args):
         raise NotImplementedError("Sub class must implement an initialization method for weights")
@@ -89,6 +89,8 @@ class Conv2d(NetworkModuleWithParams):
     def init_weights(self, in_channels, out_channels, kernel_size):
         self.weights = np.random.normal(loc=0, scale=1, size=(out_channels, in_channels, kernel_size, kernel_size))
         self.biases = np.random.normal(loc=0, scale=1, size=(out_channels, 1))
+        self.vw = np.zeros_like(self.weights)
+        self.vb = np.zeros_like(self.biases)
 
     def __call__(self, input_):
         self.layer_input = input_
@@ -141,6 +143,8 @@ class Linear(NetworkModuleWithParams):
     def init_weights(self, in_dimension, out_dimension):
         self.weights = np.random.normal(loc=0, scale=1, size=(out_dimension, in_dimension))
         self.biases = np.random.normal(loc=0, scale=1, size=(out_dimension, 1))
+        self.vw = np.zeros_like(self.weights)
+        self.vb = np.zeros_like(self.biases)
 
     def __call__(self, input_):
         self.layer_input = input_
@@ -300,10 +304,10 @@ class BatchNorm(NetworkModuleWithMode):
         self.dbeta = None
         self.cache = None
         self.layer_grad = None
-        self.bn_mean = 0
-        self.bn_var = 0
-        self.vgamma = 0
-        self.vbeta = 0
+        self.bn_mean = None
+        self.bn_var = None
+        self.vgamma = np.zeros_like(self.gamma)
+        self.vbeta = np.zeros_like(self.beta)
 
     def __call__(self, z, mode):
         if mode == 'train':
@@ -313,6 +317,9 @@ class BatchNorm(NetworkModuleWithMode):
             out = self.gamma * X_norm + self.beta
             self.cache = (z, X_norm, mu, var,
                     self.gamma, self.beta)
+            if self.bn_mean is None or self.bn_var is None:
+                self.bn_mean = np.zeros_like(mu)
+                self.bn_var = np.zeros_like(var)
             self.bn_mean = 0.9 * self.bn_mean + 0.1 * mu
             self.bn_var = 0.9 * self.bn_var + 0.1 * var
         else:

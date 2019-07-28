@@ -32,14 +32,20 @@ class SGDOptimizer(object):
                 # perform SGD step with average batch gradient
                 if self.m:
                     vw, vb = l.vw, l.vb
-                    vw = self.m * vw + self.lr * np.sum(weights_grad, axis=0)
+                    if isinstance(l, nn.Conv2d):
+                        vw = self.m * vw + self.lr * weights_grad
+                    else:
+                        vw = self.m * vw + self.lr * np.sum(weights_grad, axis=0)
                     vb = self.m * vb + self.lr * np.sum(biases_grad, axis=0)
                     w -= vw
                     b -= vb
                     l.set_vw(vw)
                     l.set_vb(vb)
                 else:
-                    w -= self.lr * np.sum(weights_grad, axis=0)
+                    if isinstance(l, nn.Conv2d):
+                        w -= self.lr * weights_grad
+                    else:
+                        w -= self.lr * np.sum(weights_grad, axis=0)
                     b -= self.lr * np.sum(biases_grad, axis=0)
                 # update the layer weights after SGD step
                 l.set_weights(w)
