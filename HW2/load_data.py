@@ -64,6 +64,13 @@ def load_training_validation_data(path):
     return training_data, training_labels, validation_data, validation_labels
 
 
+def load_model_from_pickle(path):
+    with gzip.open(path, "rb") as f:
+        model = pickle.load(f)
+
+    return model
+
+
 def shuffle_batch(data, labels):
     assert len(data) == len(labels)
     random_indices = np.random.permutation(len(data))
