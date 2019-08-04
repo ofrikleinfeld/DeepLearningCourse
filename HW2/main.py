@@ -27,7 +27,7 @@ if __name__ == '__main__':
     model = networks.SimplerCNN()
     optimizer = optimizers.SGDOptimizer(model, lr=0.1, momentum=0.9)
     num_epochs = 100
-    batch_size = 32
+    batch_size = 16
 
     validation_sample_size = len(validation_data)
     train_batch_indices = range(0, round((len(train_data) / batch_size)) * batch_size, batch_size)
@@ -98,5 +98,5 @@ if __name__ == '__main__':
                 loss = loss_tmp
             val_epoch_loss += loss
         # print(num_correct, sample_size)
-        print(f"Epoch {epoch + 1} - prediction accuracy on validation set is: {num_correct / sample_size}")
         print(f"Epoch {epoch + 1} - average validation loss is: {val_epoch_loss / valid_length}")
+        print(f"Epoch {epoch + 1} - prediction accuracy on validation set is: {num_correct / sample_size}")
