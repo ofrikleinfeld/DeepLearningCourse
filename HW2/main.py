@@ -29,7 +29,7 @@ if __name__ == '__main__':
     num_epochs = 100
     batch_size = 32
 
-    validation_sample_size = 1000
+    validation_sample_size = len(validation_data)
     train_batch_indices = range(0, round((len(train_data) / batch_size)) * batch_size, batch_size)
     validation_batch_indices = range(0, round((validation_sample_size / batch_size)) * batch_size, batch_size)
     best_validation_accuracy = 0
@@ -38,7 +38,7 @@ if __name__ == '__main__':
         epoch_loss = 0
         model.set_mode('train')
         train_data, train_labels = load_data.shuffle_batch(train_data, train_labels )
-        for k in batch_indices:
+        for k in train_batch_indices:
             x_batch = train_data[k: k + batch_size]
             y_batch = train_labels[k: k + batch_size]
 
@@ -51,7 +51,6 @@ if __name__ == '__main__':
 
             model.backward(y_batch)
             optimizer.make_step()
-
 
             epoch_loss += loss
 
@@ -98,6 +97,6 @@ if __name__ == '__main__':
             else:
                 loss = loss_tmp
             val_epoch_loss += loss
-        print(num_correct, sample_size)
+        # print(num_correct, sample_size)
         print(f"Epoch {epoch + 1} - prediction accuracy on validation set is: {num_correct / sample_size}")
         print(f"Epoch {epoch + 1} - average validation loss is: {val_epoch_loss / valid_length}")

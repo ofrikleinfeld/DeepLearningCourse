@@ -194,6 +194,7 @@ class Tanh(NetworkModule):
         self.layer_grad = next_layer_gard * util_functions.tanh_derivative(self.layer_input)
         return self.layer_grad
 
+
 class Softmax(NetworkModule):
 
     def __call__(self, z):
@@ -292,6 +293,27 @@ class Dropout(NetworkModuleWithMode):
     def backward(self, next_layer_grad):
         self.layer_grad = next_layer_grad * self.dropout_mask
         return self.layer_grad
+
+
+class Dropout2d(Dropout):
+    def __init__(self, rate):
+        super(Dropout2d, self).__init__(rate)
+
+    def get_mask(self, shape):
+        """
+        Spatial dropout layer - dropping entire channels
+        :param shape:
+        :return: dropout mask
+        """
+        drop_mask = np.ones(shape)
+        batch_size, num_channels = shape[0], shape[1]
+        drop_probabilities = np.random.rand(batch_size, num_channels)
+
+        channels_mask = np.where(drop_probabilities <= self.rate, 1, 0)
+        drop_mask[channels_mask == 1, :, :] = 0
+
+        self.dropout_mask = drop_mask
+        return self.dropout_mask
 
 
 class BatchNorm(NetworkModuleWithMode):

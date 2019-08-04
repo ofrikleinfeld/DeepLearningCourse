@@ -2,7 +2,7 @@ import modules as nn
 
 
 class NN(object):
-    def __init__(self, layers):
+    def __init__(self):
         self.layers = None
         self.mode = 'train'
 
@@ -31,6 +31,7 @@ class NN(object):
 class SimpleCNN(NN):
 
     def __init__(self):
+        super(SimpleCNN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=5, kernel_size=3, stride=1)
         self.relu1 = nn.LeakyRelu()
         self.max_pool1 = nn.MaxPool2d(kernel_size=2)
@@ -54,6 +55,7 @@ class SimpleCNN(NN):
 
 class SimplerCNN(NN):
     def __init__(self):
+        super(SimplerCNN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=5, kernel_size=3, stride=3, padding=2)
         self.relu1 = nn.LeakyRelu()
         self.conv2 = nn.Conv2d(in_channels=5, out_channels=10, kernel_size=3, stride=3, padding=3)
