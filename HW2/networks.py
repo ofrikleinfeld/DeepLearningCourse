@@ -56,15 +56,18 @@ class SimpleCNN(NN):
 class SimplerCNN(NN):
     def __init__(self):
         super(SimplerCNN, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=5, kernel_size=3, stride=3, padding=2)
+        self.dropout2d = nn.Dropout2d(rate=0.3)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=15, kernel_size=3, stride=3, padding=2)
         self.relu1 = nn.LeakyRelu()
-        self.conv2 = nn.Conv2d(in_channels=5, out_channels=10, kernel_size=3, stride=3, padding=3)
+        self.conv2 = nn.Conv2d(in_channels=15, out_channels=30, kernel_size=3, stride=3, padding=3)
         self.relu2 = nn.LeakyRelu()
+        self.conv3 = nn.Conv2d(in_channels=30, out_channels=40, kernel_size=4)
+        self.relu3 = nn.LeakyRelu()
         self.flatten = nn.Flatten()
         self.linear = nn.Linear(in_dimension=360, out_dimension=180)
         self.dropout2 = nn.Dropout(rate=0.3)
         self.bn1 = nn.BatchNorm()
-        self.relu3 = nn.LeakyRelu()
+        self.relu4 = nn.LeakyRelu()
         self.dropout3 = nn.Dropout(rate=0.3)
         self.linear2 = nn.Linear(in_dimension=180, out_dimension=10)
         self.bn2 = nn.BatchNorm()
@@ -72,9 +75,9 @@ class SimplerCNN(NN):
         self.set_forward()
 
     def set_forward(self):
-        self.layers = [self.conv1, self.relu1, self.conv2, self.relu2 ,
-                       self.flatten, self.linear, self.dropout2,
-                       self.bn1,self.relu3, self.dropout3,self.linear2, self.bn2, self.softmax]
+        self.layers = [self.dropout2d, self.conv1, self.relu1, self.conv2, self.relu2,
+                       self.conv3, self.relu3, self.flatten, self.linear, self.dropout2,
+                       self.bn1, self.relu4, self.dropout3, self.linear2, self.bn2, self.softmax]
 
 
 class FullyConnected(NN):
