@@ -70,8 +70,8 @@ class SGDOptimizer(object):
 
 class LearningRateScheduler(object):
 
-    def __init__(self, optimizer, decay_factor, decay_patience=3,
-                 compare_threshold=1e-5, verbose=True):
+    def __init__(self, optimizer, decay_factor, decay_patience=2,
+                 compare_threshold=0.02, verbose=True):
         self.optimizer = optimizer
         self.decay_factor = decay_factor
         self.decay_patience = decay_patience
@@ -97,7 +97,7 @@ class LearningRateScheduler(object):
             # update learning rate if not improved for enough epochs
             if self.epochs_no_improve >= self.decay_patience:
                 current_lr = self.optimizer.lr
-                new_lr = current_lr * self.decay_patience
+                new_lr = current_lr * self.decay_factor
                 self.optimizer.lr = new_lr
 
                 if self.verbose:
