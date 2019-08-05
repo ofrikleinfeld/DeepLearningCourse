@@ -23,9 +23,9 @@ if __name__ == '__main__':
     valid_length = len(validation_data)
 
     model = networks.SimplerCNN()
-    optimizer = optimizers.SGDOptimizer(model, lr=0.1, momentum=0.9)
-    lr_scheduler = optimizers.LearningRateScheduler(optimizer, decay_factor=0.7)
-    num_epochs = 100
+    optimizer = optimizers.SGDOptimizer(model, lr=0.05, momentum=0.9)
+    lr_scheduler = optimizers.LearningRateScheduler(optimizer, decay_factor=0.4)
+    num_epochs = 50
     batch_size = 16
 
     validation_sample_size = len(validation_data)
@@ -108,5 +108,6 @@ if __name__ == '__main__':
 
         # save model if validation accuracy is best so far
         if validation_accuracy > best_validation_accuracy:
+            print(f"Epoch {epoch + 1} - Saving best model so far to disk")
             model.save_model()
             best_validation_accuracy = validation_accuracy
