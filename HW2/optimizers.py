@@ -66,3 +66,43 @@ class SGDOptimizer(object):
                     beta -= self.lr * np.sum(beta_grad, axis=0)
                 l.set_gamma(gamma)
                 l.set_beta(beta)
+
+
+class LearningRateScheduler(object):
+
+    def __init__(self, optimizer, decay_factor, decay_patience=3,
+                 compare_threshold=1e-5, verbose=True):
+        self.optimizer = optimizer
+        self.decay_factor = decay_factor
+        self.decay_patience = decay_patience
+        self.compare_threshold = compare_threshold
+        self.verbose = verbose
+
+        self.accuracy_best_value = None
+        self.epochs_no_improve = 0
+
+    def make_step(self, accuracy):
+        if self.accuracy_best_value is None:
+            self.accuracy_best_value = accuracy
+
+        else:
+            # accuracy didn't improve on epoch
+            if self.accuracy_best_value > accuracy + self.compare_threshold:
+                self.epochs_no_improve += 1
+            else:
+                # accuracy did improve
+                self.accuracy_best_value = accuracy
+                self.epochs_no_improve = 0
+
+            # update learning rate if not improved for enough epochs
+            if self.epochs_no_improve >= self.decay_patience:
+                current_lr = self.optimizer.lr
+                new_lr = current_lr * self.decay_patience
+                self.optimizer.lr = new_lr
+
+                if self.verbose:
+                    print(f"Validation set accuracy did not improve for {self.epochs_no_improve} epochs")
+                    print(f"Decaying learning rate from {current_lr} to {new_lr}")
+
+                self.epochs_no_improve = 0
+
