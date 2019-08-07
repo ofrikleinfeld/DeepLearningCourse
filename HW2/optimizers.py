@@ -67,15 +67,25 @@ class SGDOptimizer(object):
                 l.set_gamma(gamma)
                 l.set_beta(beta)
 
+    def get_layers_gardients(self):
+        layers = self.model.layers
+        for l in layers:
+            layer_grad = l.layer_grad
+            flatten_layer_grand = layer_grad.reshape(-1)
+            num_elements = len(flatten_layer_grand)
+            layer_average_norm = np.linalg.norm(flatten_layer_grand) / num_elements
+            print(f"Layer is: {l} and layer average norm is: {layer_average_norm}")
+
 
 class LearningRateScheduler(object):
 
-    def __init__(self, optimizer, decay_factor, decay_patience=3,
-                 compare_threshold=1e-5, verbose=True):
+    def __init__(self, optimizer, decay_factor, decay_patience=2,
+                 compare_threshold=0.01, min_lr=1e-7, verbose=True):
         self.optimizer = optimizer
         self.decay_factor = decay_factor
         self.decay_patience = decay_patience
         self.compare_threshold = compare_threshold
+        self.min_lr = min_lr
         self.verbose = verbose
 
         self.accuracy_best_value = None
@@ -87,22 +97,27 @@ class LearningRateScheduler(object):
 
         else:
             # accuracy didn't improve on epoch
-            if self.accuracy_best_value > accuracy + self.compare_threshold:
+            if self.accuracy_best_value + self.compare_threshold > accuracy:
                 self.epochs_no_improve += 1
             else:
                 # accuracy did improve
                 self.accuracy_best_value = accuracy
                 self.epochs_no_improve = 0
 
+            print(f"Scheduler best accuracy: {self.accuracy_best_value}")
+            print(f"Scheduler epochs without improvement {self.epochs_no_improve} ")
+
             # update learning rate if not improved for enough epochs
             if self.epochs_no_improve >= self.decay_patience:
                 current_lr = self.optimizer.lr
-                new_lr = current_lr * self.decay_patience
-                self.optimizer.lr = new_lr
+                new_lr = current_lr * self.decay_factor
+                if new_lr >= self.min_lr:
+                    self.optimizer.lr = new_lr
 
-                if self.verbose:
-                    print(f"Validation set accuracy did not improve for {self.epochs_no_improve} epochs")
-                    print(f"Decaying learning rate from {current_lr} to {new_lr}")
+                    if self.verbose:
+                        print(f"Validation set accuracy did not improve for {self.epochs_no_improve} epochs")
+                        print(f"Decaying learning rate from {current_lr} to {new_lr}")
 
                 self.epochs_no_improve = 0
+
 

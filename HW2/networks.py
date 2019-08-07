@@ -16,6 +16,9 @@ class NN(object):
                 x = l(x)
         return x
 
+    def __str__(self):
+        return " ".join([l.__str__() for l in self.layers])
+
     def backward(self, labels):
         last_grad = self.layers[-1].backward(labels)
         for l in reversed(self.layers[:-1]):
@@ -40,8 +43,8 @@ class NN(object):
 
         return model
 
-class SimpleCNN(NN):
 
+class SimpleCNN(NN):
     def __init__(self):
         super(SimpleCNN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=5, kernel_size=3, stride=1)

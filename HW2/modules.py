@@ -21,7 +21,7 @@ class NetworkModuleWithMode(NetworkModule):
     def __init__(self):
         super(NetworkModuleWithMode, self).__init__()
 
-    def __call__(self, input_, mode):
+    def __call__(self, input_):
         raise NotImplementedError("Sub class must implement forward pass")
 
 
@@ -62,10 +62,12 @@ class NetworkModuleWithParams(NetworkModule):
         self.weights = new_weights
 
     def set_biases(self, new_biases):
-        if(len(new_biases.shape) != 2):
+
+        if len(new_biases.shape) != 2:
             self.biases = new_biases.reshape(new_biases.shape[0], 1)
         else:
             self.biases = new_biases
+
     def set_vw(self, new_vw):
         self.vw = new_vw
 

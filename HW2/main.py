@@ -23,8 +23,9 @@ if __name__ == '__main__':
     valid_length = len(validation_data)
 
     model = networks.SimplerCNN()
-    optimizer = optimizers.SGDOptimizer(model, lr=0.05, momentum=0.9)
-    lr_scheduler = optimizers.LearningRateScheduler(optimizer, decay_factor=0.4)
+    print(model)
+    optimizer = optimizers.SGDOptimizer(model, lr=0.1, momentum=0.9)
+    lr_scheduler = optimizers.LearningRateScheduler(optimizer, decay_factor=0.5, decay_patience=3)
     num_epochs = 50
     batch_size = 16
 
@@ -37,7 +38,7 @@ if __name__ == '__main__':
         epoch_loss = 0
         model.set_mode('train')
         train_data, train_labels = load_data.shuffle_batch(train_data, train_labels )
-        for k in train_batch_indices:
+        for batch_index, k in enumerate(train_batch_indices, 1):
             x_batch = train_data[k: k + batch_size]
             y_batch = train_labels[k: k + batch_size]
 
@@ -52,6 +53,9 @@ if __name__ == '__main__':
             optimizer.make_step()
 
             epoch_loss += loss
+
+            if batch_index == 7:
+                optimizer.get_layers_gardients()
 
         print(f"Epoch {epoch + 1} - average loss is: {epoch_loss / train_length}")
         model.set_mode('test')
