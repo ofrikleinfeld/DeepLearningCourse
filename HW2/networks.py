@@ -47,25 +47,21 @@ class NN(object):
 class SimpleCNN(NN):
     def __init__(self):
         super(SimpleCNN, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=5, kernel_size=3, stride=1)
-        self.relu1 = nn.LeakyRelu()
-        self.max_pool1 = nn.MaxPool2d(kernel_size=2)
-        self.conv2 = nn.Conv2d(in_channels=5, out_channels=8, kernel_size=4, stride=1)
-        self.relu2 = nn.LeakyRelu()
-        self.max_pool2 = nn.MaxPool2d(kernel_size=2)
-        self.conv3 = nn.Conv2d(in_channels=8, out_channels=12, kernel_size=3, stride=1)
-        self.relu3 = nn.LeakyRelu()
-        self.max_pool3 = nn.MaxPool2d(kernel_size=2)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=6, kernel_size=3, stride=3, padding=2)
+        self.tanh1 = nn.Tanh()
+        self.conv2 = nn.Conv2d(in_channels=6, out_channels=10, kernel_size=3, stride=3, padding=3)
+        self.tanh2 = nn.Tanh()
+        self.dropout2d = nn.Dropout2d(rate=0.5)
         self.flatten = nn.Flatten()
-        self.linear = nn.Linear(in_dimension=48, out_dimension=10)
+        self.linear = nn.Linear(in_dimension=360, out_dimension=10)
         self.softmax = nn.Softmax()
         self.set_forward()
 
     def set_forward(self):
-        self.layers = [self.conv1, self.relu1, self.max_pool1,
-                       self.conv2, self.relu2, self.max_pool2,
-                       self.conv3, self.relu3, self.max_pool3,
-                       self.flatten, self.linear, self.softmax]
+        self.layers = [self.conv1, self.tanh1,
+                       self.conv2, self.tanh2,
+                       self.dropout2d, self.flatten,
+                       self.linear, self.softmax]
 
 
 class SimplerCNN(NN):

@@ -67,14 +67,14 @@ class SGDOptimizer(object):
                 l.set_gamma(gamma)
                 l.set_beta(beta)
 
-    def get_layers_gardients(self):
+    def get_layers_gradients(self):
         layers = self.model.layers
         for l in layers:
             layer_grad = l.layer_grad
             flatten_layer_grand = layer_grad.reshape(-1)
             num_elements = len(flatten_layer_grand)
             layer_average_norm = np.linalg.norm(flatten_layer_grand) / num_elements
-            print(f"Layer is: {l} and layer average norm is: {layer_average_norm}")
+            print(f"Layer is: {l} and layer gradient average norm is: {layer_average_norm}")
 
 
 class LearningRateScheduler(object):
