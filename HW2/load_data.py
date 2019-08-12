@@ -64,11 +64,11 @@ def load_training_validation_data(path):
     return training_data, training_labels, validation_data, validation_labels
 
 
-def load_model_from_pickle(path):
+def load_data_from_pickle_gz(path):
     with gzip.open(path, "rb") as f:
-        model = pickle.load(f)
+        data = pickle.load(f)
 
-    return model
+    return data
 
 
 def shuffle_batch(data, labels):
