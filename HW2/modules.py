@@ -285,10 +285,10 @@ class Dropout(NetworkModuleWithMode):
 
         if mode == 'train':
             self.dropout_mask = self.get_mask(self.layer_input.shape)
-            self.layer_output = self.layer_input * self.dropout_mask
+            self.layer_output = self.layer_input * self.dropout_mask * (1 / (1 - self.rate))
 
         else:
-            self.layer_output = self.layer_input * (1 - self.rate)
+            self.layer_output = self.layer_input
 
         return self.layer_output
 

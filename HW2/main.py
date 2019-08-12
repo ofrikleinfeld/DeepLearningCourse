@@ -7,6 +7,8 @@ import optimizers
 
 if __name__ == '__main__':
 
+    np.random.seed(1312)
+
     # train_mean, train_std, train_data, train_labels = load_data.load_dataset("../../data/train.csv", normalize=True)
     # validation_data, validation_labels = load_data.load_dataset("../../data/validate.csv", normalize=(train_mean, train_std))
     #
@@ -24,10 +26,10 @@ if __name__ == '__main__':
 
     model = networks.SimplerCNN()
     print(model)
-    optimizer = optimizers.SGDOptimizer(model, lr=0.1, momentum=0.9)
-    lr_scheduler = optimizers.LearningRateScheduler(optimizer, decay_factor=0.5, decay_patience=3)
-    num_epochs = 50
-    batch_size = 16
+    optimizer = optimizers.SGDOptimizer(model, lr=0.1, momentum=0.6)
+    lr_scheduler = optimizers.LearningRateScheduler(optimizer, decay_factor=0.95, decay_patience=5)
+    num_epochs = 80
+    batch_size = 32
 
     validation_sample_size = len(validation_data)
     train_batch_indices = range(0, round((len(train_data) / batch_size)) * batch_size, batch_size)
@@ -37,15 +39,15 @@ if __name__ == '__main__':
     for epoch in range(num_epochs):
         epoch_loss = 0
         model.set_mode('train')
-        train_data, train_labels = load_data.shuffle_batch(train_data, train_labels )
+        train_data, train_labels = load_data.shuffle_batch(train_data, train_labels)
         for batch_index, k in enumerate(train_batch_indices, 1):
             x_batch = train_data[k: k + batch_size]
             y_batch = train_labels[k: k + batch_size]
 
             output = model(x_batch)
-            loss_tmp = np.sum(np.sum(-np.log(output) * y_batch, axis=1))
+            loss_tmp = np.average(np.sum(-np.log(output) * y_batch, axis=1))
             if np.isnan(loss_tmp):
-                loss = np.sum(np.sum(-np.log(output+1e-15) * y_batch, axis=1))
+                loss = np.average(np.sum(-np.log(output+1e-15) * y_batch, axis=1))
             else:
                 loss = loss_tmp
 
@@ -54,10 +56,10 @@ if __name__ == '__main__':
 
             epoch_loss += loss
 
-            if batch_index == 7:
-                optimizer.get_layers_gardients()
+            # if batch_index == 7:
+            #     optimizer.get_layers_gardients()
 
-        print(f"Epoch {epoch + 1} - average loss is: {epoch_loss / train_length}")
+        print(f"Epoch {epoch + 1} - average loss is: {epoch_loss / len(train_batch_indices)}")
         model.set_mode('test')
         # evaluate accuracy on training set
         num_correct = 0
@@ -94,17 +96,17 @@ if __name__ == '__main__':
             batch_correct_predictions = np.sum(predictions
                                                == correct_labels)
             num_correct += batch_correct_predictions
-            loss_tmp = np.sum(np.sum(-np.log(output) * y_batch, axis=1))
+            loss_tmp = np.average(np.sum(-np.log(output) * y_batch, axis=1))
 
             if np.isnan(loss_tmp):
-                loss = np.sum(np.sum(-np.log(output+1e-15) * y_batch, axis=1))
+                loss = np.average(np.sum(-np.log(output+1e-15) * y_batch, axis=1))
             else:
                 loss = loss_tmp
 
             val_epoch_loss += loss
 
-        validation_accuracy = num_correct / sample_size
-        print(f"Epoch {epoch + 1} - average validation loss is: {val_epoch_loss / valid_length}")
+        validation_accuracy = num_correct / valid_length
+        print(f"Epoch {epoch + 1} - average validation loss is: {val_epoch_loss / len(validation_batch_indices)}")
         print(f"Epoch {epoch + 1} - prediction accuracy on validation set is: {validation_accuracy}")
 
         # perform learning rate updates by using scheduler
