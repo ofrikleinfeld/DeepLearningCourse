@@ -139,7 +139,7 @@ class Conv2d(NetworkModuleWithParams):
 class Linear(NetworkModuleWithParams):
 
     def __init__(self, in_dimension, out_dimension):
-        super(Linear, self).__init__()
+        super().__init__()
         self.init_weights(in_dimension, out_dimension)
 
     def init_weights(self, in_dimension, out_dimension):
@@ -148,16 +148,15 @@ class Linear(NetworkModuleWithParams):
         self.vw = np.zeros_like(self.weights)
         self.vb = np.zeros_like(self.biases)
 
-    def __call__(self, input_):
-        self.layer_input = input_
-        self.layer_output = util_functions.linear(input_, self.weights, self.biases)
+    def __call__(self, x):
+        self.layer_input = x
+        self.layer_output = np.einsum("bij,jk->bik", x, self.weights) + self.biases
         return self.layer_output
 
     def backward(self, next_layer_grad):
-        self.layer_grad = next_layer_grad @ self.weights
-        batch_size, _ = self.layer_grad.shape
-        self.w_grad = next_layer_grad.reshape(batch_size, -1, 1) @ self.layer_input.reshape(batch_size, 1, -1)
-        self.b_grad = next_layer_grad.reshape(batch_size, next_layer_grad.shape[1], 1)
+        self.layer_grad = np.einsum("bi,ij->bj", next_layer_grad, self.weights)
+        self.w_grad = np.einsum("bi,bj->bij", next_layer_grad, self.layer_input)
+        self.b_grad = next_layer_grad
         return self.layer_grad
 
 

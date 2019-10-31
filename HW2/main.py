@@ -9,11 +9,11 @@ if __name__ == '__main__':
 
     np.random.seed(1312)
 
-    # train_mean, train_std, train_data, train_labels = load_data.load_dataset("../../data/train.csv", normalize=True)
-    # validation_data, validation_labels = load_data.load_dataset("../../data/validate.csv", normalize=(train_mean, train_std))
-    #
-    # load_data.save_data_as_pickle_gz((train_data, train_labels, validation_data, validation_labels),
-    #                                  file_name="data/training_validation_normalized.pkl.gz")
+    train_mean, train_std, train_data, train_labels = load_data.load_dataset("../../data/train.csv", normalize=True)
+    validation_data, validation_labels = load_data.load_dataset("../../data/validate.csv", normalize=(train_mean, train_std))
+
+    load_data.save_data_as_pickle_gz((train_data, train_labels, validation_data, validation_labels),
+                                     file_name="data/training_validation_normalized.pkl.gz")
 
     train_data, train_labels, validation_data, validation_labels = load_data.load_training_validation_data(
                                                                     "data/training_validation_normalized.pkl.gz")
